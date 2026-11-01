@@ -33,7 +33,7 @@ import * as tasks from "./repositories/tasks";
 import * as tokens from "./repositories/tokens";
 import { parse } from "./validate";
 
-export const SERVICE_VERSION = "0.1.0";
+export const SERVICE_VERSION = "0.2.0";
 export const DEFAULT_LEASE_SECONDS = 300;
 
 /** Starts a codespace and returns its new state. Provided by the Worker (GitHub API). */
@@ -95,7 +95,9 @@ export class OrchestraService implements Remote {
     const batch = parse(MemoryBatch, input);
     const now = this.now();
     const statements = batch.items.map((item) =>
-      memories.upsertMemoryStatement(this.deps.db, { ...item, repo: batch.repo, agentId: batch.agentId }, now),
+      "deleted" in item
+        ? memories.deleteMemoryStatement(this.deps.db, { ...item, repo: batch.repo })
+        : memories.upsertMemoryStatement(this.deps.db, { ...item, repo: batch.repo, agentId: batch.agentId }, now),
     );
     const results = await this.deps.db.batch(statements);
     return { upserted: results.reduce<number>((sum, r) => sum + changesOf(r), 0) };

@@ -3,7 +3,9 @@ import { z } from "zod";
 import { MessageKind, Repo } from "../core/contract";
 import { advanceTask, getTaskState, type OrchestratorDeps, startTask } from "../orchestration/runner";
 import { ApprovalDecision, Edit, type TaskInput } from "../orchestration/state";
-import { isOnline, runCheckpoint } from "./commands";
+import { SCOPES } from "../memory/store";
+import { suggestTopicKey } from "../memory/text";
+import { isOnline, memoryContext, runCheckpoint } from "./commands";
 import type { Runtime } from "./runtime";
 
 type Shape = z.ZodRawShape;
@@ -22,9 +24,96 @@ const orchestrator = (rt: Runtime): OrchestratorDeps => ({
 });
 
 const ADVANCE_KINDS = ["findings", "plan", "edits", "verification", "pull-requests", "cancel"] as const;
+const Scope = z.enum(SCOPES);
+const MemoryId = z.number().int().positive();
+
+const project = (rt: Runtime) => rt.identity.agent.repo;
+const currentSessionId = (rt: Runtime) => rt.store.currentSession(project(rt))?.id ?? null;
+
+/** Local memory of this repository (the Engram replacement). Writes stay local until the next sync. */
+const MEMORY_TOOLS = {
+  orchestra_save: tool({
+    description:
+      "Saves a durable, verified memory of THIS repository: decisions with rationale, non-obvious root causes, contracts, constraints, pending work. Content format: What / Why / Where / Learned. Use a topic_key for evolving topics: the same key updates the memory and keeps the old version as history. scope=personal keeps it on this machine only.",
+    input: {
+      title: z.string().min(1).describe("Verb + what, short and searchable"),
+      type: z.string().min(1).describe("bugfix | decision | architecture | discovery | pattern | config | preference | learning"),
+      content: z.string().min(1),
+      scope: Scope.optional(),
+      topicKey: z.string().optional().describe("Stable key like architecture/auth-model; see orchestra_suggest_topic_key"),
+    },
+    run: async (rt, a) => {
+      const { observation, outcome } = rt.store.save({ project: project(rt), sessionId: currentSessionId(rt), ...a });
+      return { id: observation.id, outcome, topicKey: observation.topicKey, revision: observation.revisionCount, scope: observation.scope };
+    },
+  }),
+  orchestra_update: tool({
+    description: "Updates a memory of this repository by id. Fields you omit stay as they are; the previous content is kept as a version.",
+    input: {
+      id: MemoryId,
+      title: z.string().min(1).optional(),
+      type: z.string().min(1).optional(),
+      content: z.string().min(1).optional(),
+      topicKey: z.string().nullable().optional(),
+      scope: Scope.optional(),
+    },
+    run: async (rt, { id, ...patch }) => rt.store.update(id, project(rt), patch),
+  }),
+  orchestra_delete: tool({
+    description: "Deletes a memory of this repository. Soft by default (also withdrawn from the shared backend on the next sync); hard=true erases it and its history.",
+    input: { id: MemoryId, hard: z.boolean().optional() },
+    run: async (rt, a) => (rt.store.delete(a.id, project(rt), a.hard ?? false), { id: a.id, deleted: true, hard: a.hard ?? false }),
+  }),
+  orchestra_get: tool({
+    description: "Reads a memory of this repository in full (search results are previews). history=true includes previous versions.",
+    input: { id: MemoryId, history: z.boolean().optional() },
+    run: async (rt, a) => rt.store.get(a.id, project(rt), a.history ?? false),
+  }),
+  orchestra_search: tool({
+    description:
+      "Full-text search over THIS repository's own memory on this machine (fresh, unmasked, includes personal). For other repositories use orchestra_recall.",
+    input: { query: z.string().min(1), type: z.string().optional(), scope: Scope.optional(), limit: z.number().int().min(1).max(50).optional() },
+    run: async (rt, a) => rt.store.search({ project: project(rt), q: a.query, type: a.type, scope: a.scope, limit: a.limit }),
+  }),
+  orchestra_context: tool({
+    description: "Recent sessions, pinned and recent memories of this repository. Call it first when the user asks what was done before.",
+    input: { compact: z.boolean().optional(), maxBytes: z.number().int().min(1024).max(65_536).optional() },
+    run: async (rt, a) => memoryContext(rt, a),
+  }),
+  orchestra_timeline: tool({
+    description: "Memories saved just before and after a given memory in the same session, to recover the surrounding story.",
+    input: { id: MemoryId, before: z.number().int().min(0).max(20).optional(), after: z.number().int().min(0).max(20).optional() },
+    run: async (rt, a) => rt.store.timeline(a.id, project(rt), a.before, a.after),
+  }),
+  orchestra_pin: tool({
+    description: "Pins (or unpins with pinned=false) a memory so it always appears in the session context.",
+    input: { id: MemoryId, pinned: z.boolean().optional() },
+    run: async (rt, a) => rt.store.setPinned(a.id, project(rt), a.pinned ?? true),
+  }),
+  orchestra_suggest_topic_key: tool({
+    description: "Suggests a stable topic_key (family/segment) for a memory. A hint: search before reusing a key.",
+    input: { type: z.string().min(1), title: z.string().min(1), content: z.string().optional() },
+    run: async (_rt, a) => ({ topicKey: suggestTopicKey(a.type, a.title, a.content ?? "") }),
+  }),
+  orchestra_session_summary: tool({
+    description:
+      "Saves the summary of this session (Goal, Instructions, Discoveries, Accomplished, Next Steps, Relevant Files). Use it at an explicit close or handoff and ALWAYS right after a context compaction.",
+    input: { content: z.string().min(1) },
+    run: async (rt, a) => {
+      const { observation, outcome } = rt.store.saveSessionSummary({ project: project(rt), sessionId: currentSessionId(rt), content: a.content });
+      return { id: observation.id, outcome };
+    },
+  }),
+  orchestra_capture_passive: tool({
+    description: "Extracts the items of a '## Key Learnings' or '## Aprendizajes' section from text and saves each new one as a memory. A safety net, not a replacement for orchestra_save.",
+    input: { content: z.string().min(1) },
+    run: async (rt, a) => rt.store.capturePassive({ project: project(rt), sessionId: currentSessionId(rt), content: a.content }),
+  }),
+} as const;
 
 /** Every tool the plugin exposes. Names are the MCP surface documented in docs/reference/mcp-tools.md. */
 export const TOOLS = {
+  ...MEMORY_TOOLS,
   orchestra_status: tool({
     description: "Shows this agent, the backend mode and which repositories have agents online or offline.",
     input: {},
@@ -41,7 +130,7 @@ export const TOOLS = {
   }),
   orchestra_recall: tool({
     description:
-      "Full-text search over the shared memory of every repository, including ones whose codespace is stopped. Use it before asking another repo or waking it.",
+      "Full-text search over the shared (masked) memory of every repository, including ones whose codespace is stopped. Use it before asking another repo or waking it. For this repo's own memory use orchestra_search.",
     input: { query: z.string().min(1), repo: Repo.optional(), limit: z.number().int().min(1).max(50).optional() },
     run: (rt, a) => rt.remote.searchMemories({ q: a.query, repo: a.repo, limit: a.limit }),
   }),
@@ -51,7 +140,7 @@ export const TOOLS = {
     run: (rt, a) => rt.remote.latestCheckpoints(a.repo),
   }),
   orchestra_sync: tool({
-    description: "Replicates this repo's Engram memories (masked) and saves a checkpoint now.",
+    description: "Pushes this repo's memory changes (masked, project scope only) to the shared backend and saves a checkpoint now.",
     input: {},
     run: (rt) => runCheckpoint(rt),
   }),

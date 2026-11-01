@@ -2,18 +2,9 @@
 
 Instalalo en **cada** codespace y clon local que quieras conectar. Todos deben apuntar al mismo backend y usar el **mismo salt de enmascarado**.
 
-## 1. Engram (memoria de cada repo)
+No hace falta nada más: la memoria de cada repo viene incluida en el plugin. Solo se necesita Node.js 22.13 o superior (los codespaces con la imagen universal ya lo traen; si no, agregá la feature `node` en `devcontainer.json`).
 
-```bash
-brew install gentleman-programming/tap/engram   # Windows/Linux: ver el README de Engram
-engram setup claude-code
-```
-
-El plugin de Engram levanta su servidor HTTP local (`127.0.0.1:7437`) al iniciar la sesión, y orchestra-man lo lee desde ahí. En un codespace, agregá la instalación de Engram a tu `devcontainer.json` (por ejemplo en `postCreateCommand`) para no repetirla.
-
-Sin Engram, orchestra-man funciona igual (mensajes, tareas, checkpoints), pero no comparte memoria. El contexto de sesión lo indica con "Engram no disponible".
-
-## 2. orchestra-man
+## 1. Instalar
 
 En Claude Code:
 
@@ -24,7 +15,7 @@ En Claude Code:
 
 Para todos los que trabajan en un repo, podés instalarlo con alcance de proyecto (queda en `.claude/settings.json` del repo). Cada persona lo instala igual en su máquina.
 
-## 3. Configurar
+## 2. Configurar
 
 La configuración vive en `~/.config/orchestra-man/config.json` (permisos 0600) y las variables de entorno tienen prioridad. Detalle de cada clave en [configuration.md](../reference/configuration.md).
 
@@ -67,7 +58,7 @@ Usa un SQLite en `~/.local/share/orchestra-man/orchestra.db`. Sirve para varios 
 
 La primera vez se genera un `maskSalt` aleatorio. **Copialo igual a todas tus máquinas** (archivo o secreto `ORCHESTRA_MASK_SALT`): si dos máquinas usan salts distintos, el mismo email produce placeholders distintos y los agentes no pueden correlacionarlos. No lo compartas fuera de tus máquinas.
 
-## 4. Verificar
+## 3. Verificar
 
 ```bash
 node <ruta-del-plugin>/dist/cli.mjs status

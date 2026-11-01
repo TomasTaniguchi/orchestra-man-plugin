@@ -1,25 +1,25 @@
-import { LIMITS, type MemoryInput } from "../core/contract";
+import { LIMITS, type MemoryChange } from "../core/contract";
 import type { Remote } from "../core/remote";
-import { type EngramClient, type EngramObservation, EngramUnavailableError } from "./engram";
+import type { MemoryStore, Observation } from "../memory/store";
+import { truncate } from "../memory/store";
 import type { GitState, Identity } from "./identity";
 
+/** Rows read from the local store per round; each round is pushed in batches of 50. */
 export const SYNC_WINDOW = 200;
-const TRUNCATED = "\n…[truncated by orchestra-man]";
+/** Upper bound of rounds per sync call, so one call never runs unbounded. */
+export const SYNC_MAX_ROUNDS = 10;
 
-const truncate = (text: string, max: number): string =>
-  text.length <= max ? text : text.slice(0, max - TRUNCATED.length) + TRUNCATED;
-
-/** Maps one Engram observation to the contract. Returns null for deleted or empty ones. */
-export function toMemory(obs: EngramObservation): MemoryInput | null {
-  if (obs.deleted_at || !obs.title.trim() || !obs.content.trim()) return null;
+/** Deleted and personal memories are withdrawn remotely without sending their content. */
+export function toChange(obs: Observation): MemoryChange {
+  if (obs.deletedAt || obs.scope !== "project") return { sourceId: obs.syncId, updatedAt: obs.updatedAt, deleted: true };
   return {
-    sourceId: obs.sync_id,
-    type: truncate(obs.type || "note", 50),
+    sourceId: obs.syncId,
+    type: obs.type.slice(0, 50),
     title: truncate(obs.title, LIMITS.memoryTitleMax),
     content: truncate(obs.content, LIMITS.memoryContentMax),
-    topicKey: obs.topic_key ?? null,
-    createdAt: obs.created_at,
-    updatedAt: obs.updated_at,
+    topicKey: obs.topicKey,
+    createdAt: obs.createdAt,
+    updatedAt: obs.updatedAt,
   };
 }
 
@@ -27,47 +27,53 @@ export const chunk = <T>(items: readonly T[], size: number): T[][] =>
   Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size));
 
 export interface SyncResult {
-  status: "synced" | "engram-unavailable";
-  read: number;
-  upserted: number;
+  /** Changes read from the local store and sent (upserts + withdrawals). */
+  sent: number;
+  /** Rows the backend actually changed (an older copy never overwrites a newer one). */
+  applied: number;
   batches: number;
-  /** Titles of the newest memories, for the checkpoint summary. */
+  /** True when SYNC_MAX_ROUNDS was reached; the rest goes in the next sync. */
+  pending: boolean;
+  /** Titles of the newest project memories, for the checkpoint summary. */
   recentTitles: string[];
-  detail?: string;
 }
 
 /**
- * Replicates this repo's recent Engram observations to the shared backend.
- * Every batch is one request and one D1 `batch()`. Re-sending is safe: the backend keeps the newest copy.
- * shortcut: always re-reads the last SYNC_WINDOW observations; add a high-water mark if Engram grows past that per interval.
+ * Pushes the local memory changes of this repo to the shared backend, incrementally.
+ * The cursor advances only after a batch is acknowledged, so a failure resends rather than loses.
  */
 export async function syncMemories(args: {
-  engram: EngramClient;
+  store: MemoryStore;
   remote: Remote;
   identity: Identity;
-  project: string;
+  target: string;
 }): Promise<SyncResult> {
-  let observations: EngramObservation[];
-  try {
-    observations = await args.engram.recentObservations(args.project, SYNC_WINDOW);
-  } catch (error) {
-    if (error instanceof EngramUnavailableError)
-      return { status: "engram-unavailable", read: 0, upserted: 0, batches: 0, recentTitles: [], detail: error.message };
-    throw error;
+  const { agent } = args.identity;
+  let sent = 0;
+  let applied = 0;
+  let batches = 0;
+  let pending = false;
+  for (let round = 0; ; round++) {
+    const changes = args.store.changesSince(args.target, agent.repo, SYNC_WINDOW);
+    for (const batch of chunk(changes, LIMITS.memoriesPerBatch)) {
+      const result = await args.remote.upsertMemories({ agentId: agent.id, repo: agent.repo, items: batch.map(toChange) });
+      args.store.advanceCursor(args.target, agent.repo, batch[batch.length - 1] as Observation);
+      sent += batch.length;
+      applied += result.upserted;
+      batches += 1;
+    }
+    if (changes.length < SYNC_WINDOW) break;
+    if (round + 1 >= SYNC_MAX_ROUNDS) {
+      pending = true;
+      break;
+    }
   }
-  const memories = observations.map(toMemory).filter((m): m is MemoryInput => m !== null);
-  let upserted = 0;
-  const batches = chunk(memories, LIMITS.memoriesPerBatch);
-  for (const items of batches) {
-    upserted += (await args.remote.upsertMemories({ agentId: args.identity.agent.id, repo: args.identity.agent.repo, items })).upserted;
-  }
-  return {
-    status: "synced",
-    read: observations.length,
-    upserted,
-    batches: batches.length,
-    recentTitles: memories.slice(0, 10).map((m) => m.title),
-  };
+  const recentTitles = args.store
+    .recent(agent.repo, 20)
+    .filter((o) => o.scope === "project")
+    .slice(0, 10)
+    .map((o) => o.title);
+  return { sent, applied, batches, pending, recentTitles };
 }
 
 /** A plain-text snapshot of where this repo is, for agents that cannot reach it. */

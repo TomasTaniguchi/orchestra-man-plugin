@@ -69,7 +69,7 @@ Anotá la URL que imprime, por ejemplo `https://orchestra-man.<tu-subdominio>.wo
 
 ```bash
 curl https://orchestra-man.<tu-subdominio>.workers.dev/v1/health
-# {"status":"ok","service":"orchestra-man","version":"0.1.0"}
+# {"status":"ok","service":"orchestra-man","version":"0.2.0"}
 ```
 
 ## 7. Emitir un token por máquina

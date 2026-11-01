@@ -34,7 +34,8 @@ Punto de entrada para agentes de IA que trabajan **sobre este repositorio**. Los
 | `src/masking/` | Reglas de enmascarado y el decorador `maskedRemote` |
 | `src/worker/` | Worker: router, auth, wake de codespaces, mantenimiento por cron |
 | `src/orchestration/` | Grafo de LangGraph. Nodos puros más herramientas inyectadas |
-| `src/plugin/` | Runtime del plugin: config, identidad, Engram, sync, casos de uso, MCP y CLI |
+| `src/memory/` | Memoria local de cada repo (reemplazo de Engram): store, texto, contexto y esquema `mem_*` |
+| `src/plugin/` | Runtime del plugin: config, identidad, sync incremental, casos de uso, MCP y CLI |
 | `migrations/` | Esquema. Lo usan wrangler **y** el modo local |
 | `plugin/` | El plugin instalable (manifest, hooks, monitor, skills y `dist/`) |
 | `docs/api/openapi.yaml` | Contrato legible. `test/e2e/contract.test.ts` lo mantiene sincronizado con las rutas |
@@ -44,6 +45,7 @@ Punto de entrada para agentes de IA que trabajan **sobre este repositorio**. Los
 - **Contrato primero.** Cambiá `src/core/contract.ts`, `src/core/routes.ts` y `docs/api/openapi.yaml` antes del handler. El test de contrato falla si divergen.
 - **Una sola implementación de cada regla.** La lógica de datos vive en `src/core`; el Worker y el modo local solo la adaptan. Nunca copies SQL en `src/worker` ni en `src/plugin`.
 - **Funciones atómicas, inyectadas y testeables.** Las dependencias (`db`, `clock`, `ids`, `fetch`, `exec`) entran por parámetro. Nada de singletons ni `Date.now()` fuera de `src/core/clock.ts`.
+- **La memoria local nunca sale sin pasar por la sync.** `src/memory` no conoce la red; solo `src/plugin/sync.ts` publica, y nunca memorias `personal`.
 - **Enmascarar en el borde.** Todo lo que sale de la máquina pasa por `maskedRemote`. El código del plugin nunca usa un `Remote` sin enmascarar; `createRuntime` es el único lugar que arma uno.
 - **Respetar los límites de D1** (`docs/reference/d1-limits.md`): como máximo 100 parámetros por sentencia, un `batch()` por petición y 50 consultas por invocación en el plan Free.
 - **Los snapshots son aserciones.** Si un snapshot cambia, explicá por qué en el commit.

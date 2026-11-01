@@ -1,15 +1,35 @@
 # Herramientas MCP
 
-El servidor MCP del plugin se llama `orchestra`. Definición: `TOOLS` en `src/plugin/mcp.ts`. Cada error vuelve como resultado MCP con `isError: true` y un mensaje que empieza con `orchestra-man:`; el servidor nunca se cae por un error de una herramienta.
+El servidor MCP del plugin se llama `orchestra` y expone 23 herramientas: 11 de memoria de este repo, 4 de consulta compartida, 4 de mensajes y 4 de tareas. Definición: `TOOLS` en `src/plugin/mcp.ts`. Cada error vuelve como resultado MCP con `isError: true` y un mensaje que empieza con `orchestra-man:`; el servidor nunca se cae por un error de una herramienta.
 
-## Consulta
+## Memoria de este repo
+
+Local, al instante y sin enmascarar. Lo `project` se publica en la siguiente sincronización; lo `personal` nunca sale de la máquina. Protocolo de uso: skill `memory`.
+
+| Herramienta | Entrada | Devuelve |
+| --- | --- | --- |
+| `orchestra_save` | `title`, `type`, `content`, `scope?` (`project`/`personal`), `topicKey?` | `{ id, outcome, topicKey, revision, scope }`. `outcome`: `created`, `updated-topic` (mismo `topicKey`: versión anterior al historial) o `deduplicated` (igual en menos de 15 min) |
+| `orchestra_update` | `id` y los campos a cambiar | La memoria actualizada; la anterior queda como versión |
+| `orchestra_delete` | `id`, `hard?` | Soft por defecto. `hard` borra contenido e historial. Ambos se retiran del backend |
+| `orchestra_get` | `id`, `history?` | La memoria completa y, con `history`, sus versiones |
+| `orchestra_search` | `query`, `type?`, `scope?`, `limit?` | Coincidencias en la memoria local de este repo, con `snippet` |
+| `orchestra_context` | `compact?`, `maxBytes?` | Sesiones recientes, fijadas y recientes (16 KB por defecto) |
+| `orchestra_timeline` | `id`, `before?`, `after?` | Memorias guardadas antes y después en la misma sesión |
+| `orchestra_pin` | `id`, `pinned?` | Fija (o desfija con `pinned=false`) para que aparezca siempre en el contexto |
+| `orchestra_suggest_topic_key` | `type`, `title`, `content?` | `{ topicKey }`, por ejemplo `architecture/invoice-api` |
+| `orchestra_session_summary` | `content` | Guarda el resumen de la sesión (uno por sesión, se actualiza si se repite) |
+| `orchestra_capture_passive` | `content` | `{ extracted, saved, duplicates }` de los ítems de una sección `## Key Learnings` / `## Aprendizajes` |
+
+`<private>…</private>` se reemplaza por `[REDACTED]` antes de guardar. Los ids son locales a cada máquina y las operaciones por id solo alcanzan memorias de este repo.
+
+## Consulta compartida
 
 | Herramienta | Entrada | Devuelve |
 | --- | --- | --- |
 | `orchestra_status` | — | Este agente, el modo, la salud del backend y cada agente con `online` |
 | `orchestra_recall` | `query`, `repo?`, `limit?` (1–50) | Memorias que coinciden, con `snippet` (coincidencias entre `[ ]`). Funciona aunque el codespace del repo esté apagado |
 | `orchestra_checkpoints` | `repo?` | Último checkpoint por repo: rama, commit, archivos sin commitear, memorias recientes |
-| `orchestra_sync` | — | Replica la memoria de Engram y guarda un checkpoint ahora |
+| `orchestra_sync` | — | Publica ahora los cambios de memoria de este repo (enmascarados, solo `project`) y guarda un checkpoint |
 
 ## Mensajes
 
@@ -49,4 +69,4 @@ Todas las herramientas de tareas devuelven `{ taskId, phase, status, instruction
 
 ## Permisos recomendados
 
-Permití sin preguntar las de solo lectura (`orchestra_status`, `orchestra_recall`, `orchestra_checkpoints`, `orchestra_inbox`, `orchestra_task_get`). **No** permitas `orchestra_task_approve` de forma automática.
+Permití sin preguntar las de solo lectura (`orchestra_status`, `orchestra_recall`, `orchestra_checkpoints`, `orchestra_inbox`, `orchestra_task_get`, `orchestra_search`, `orchestra_get`, `orchestra_context`, `orchestra_timeline`, `orchestra_suggest_topic_key`) y, si querés que Claude guarde memoria sin preguntar, `orchestra_save` y `orchestra_session_summary`. **No** permitas `orchestra_task_approve` de forma automática.

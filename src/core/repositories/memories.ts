@@ -30,6 +30,15 @@ export const upsertMemoryStatement = (db: SqlDatabase, m: MemoryRow, now: string
     )
     .bind(m.repo, m.sourceId, m.agentId, m.type, m.title, m.content, m.topicKey, m.createdAt, m.updatedAt, now);
 
+/** Removes a memory unless the backend already holds a newer copy. */
+export const deleteMemoryStatement = (
+  db: SqlDatabase,
+  m: { repo: string; sourceId: string; updatedAt: string },
+): SqlStatement =>
+  db
+    .prepare("DELETE FROM memories WHERE repo = ? AND source_id = ? AND updated_at <= ?")
+    .bind(m.repo, m.sourceId, m.updatedAt);
+
 /**
  * Turns free text into a safe FTS5 query: every word becomes a quoted prefix term, OR-ed so a
  * natural-language goal still recalls partial matches (bm25 ranks the best ones first).

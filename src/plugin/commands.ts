@@ -1,22 +1,44 @@
+import { z } from "zod";
 import type { Agent, Checkpoint, Message } from "../core/contract";
-import { checkpointSummary, type SyncResult, syncMemories } from "./sync";
+import { formatMemoryContext } from "../memory/context";
 import { readGitState } from "./identity";
 import type { Runtime } from "./runtime";
+import { checkpointSummary, type SyncResult, syncMemories } from "./sync";
 
 /**
  * Use cases shared by the MCP server and the CLI (hooks, monitor). Each takes the Runtime,
- * so they are testable with an in-memory backend and fake Engram/git.
+ * so they are testable with an in-memory backend, a fake git and a fixed clock.
  */
+
+/** The JSON Claude Code sends to hooks on stdin. Only the fields orchestra-man uses. */
+export const HookInput = z
+  .object({
+    session_id: z.string().min(1).optional(),
+    cwd: z.string().min(1).optional(),
+    source: z.string().optional(),
+    last_assistant_message: z.string().optional(),
+    stdout: z.string().optional(),
+  })
+  .catch({});
+export type HookInput = z.infer<typeof HookInput>;
+
+export const parseHookInput = (raw: string): HookInput => {
+  try {
+    return HookInput.parse(JSON.parse(raw || "{}"));
+  } catch {
+    return {};
+  }
+};
 
 export interface CheckpointResult {
   sync: SyncResult;
   checkpoint: Checkpoint;
 }
 
-/** Heartbeat + memory replication + a checkpoint of where this repo is. */
+/** Heartbeat + incremental memory replication + a checkpoint of where this repo is. */
 export async function runCheckpoint(rt: Runtime): Promise<CheckpointResult> {
   await rt.remote.registerAgent(rt.identity.agent);
-  const sync = await syncMemories({ engram: rt.engram, remote: rt.remote, identity: rt.identity, project: rt.project });
+  const sync = await syncMemories({ store: rt.store, remote: rt.remote, identity: rt.identity, target: rt.syncTarget });
   const git = readGitState(rt.identity.repoRoot, rt.exec);
   const checkpoint = await rt.remote.saveCheckpoint({
     agentId: rt.identity.agent.id,
@@ -59,16 +81,12 @@ export interface SessionView {
   staleMinutes: number;
 }
 
-/** The text injected into Claude's context at SessionStart. Pure, so it is snapshot-tested. */
+/** The cross-repo block injected at SessionStart. Pure, so it is snapshot-tested. */
 export function formatSessionContext(view: SessionView): string {
   const own = view.agent.repo;
   const repos = [...new Set([...view.agents.map((a) => a.repo), ...view.checkpoints.map((c) => c.repo)])]
     .filter((r) => r !== own)
     .sort();
-  const syncLine =
-    view.sync.status === "synced"
-      ? `memorias de Engram replicadas: ${view.sync.upserted}`
-      : `Engram no disponible, memorias no replicadas (${view.sync.detail ?? ""})`;
   const repoLines = repos.map((repo) => {
     const agents = view.agents.filter((a) => a.repo === repo);
     const online = agents.some((a) => isOnline(a, view.now, view.staleMinutes));
@@ -79,7 +97,7 @@ export function formatSessionContext(view: SessionView): string {
   });
   return [
     "# orchestra-man",
-    `Agente ${view.agent.id} (${view.agent.kind}) · backend ${view.mode} · ${syncLine}.`,
+    `Agente ${view.agent.id} (${view.agent.kind}) · backend ${view.mode} · memorias sincronizadas: ${view.sync.sent}${view.sync.pending ? " (quedan pendientes)" : ""}.`,
     "",
     "## Otros repositorios",
     ...(repoLines.length ? repoLines : ["- ninguno registrado todavía"]),
@@ -87,11 +105,23 @@ export function formatSessionContext(view: SessionView): string {
     `## Bandeja (${view.inbox.length} sin leer)`,
     ...(view.inbox.length ? view.inbox.slice(0, 10).map((m) => formatMessage(m)) : ["- vacía"]),
     "",
-    "Para trabajo que cruza repositorios seguí la skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint.",
+    "Memoria de este repo: seguí la skill orchestra-man:memory. Trabajo entre repositorios: skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint.",
   ].join("\n");
 }
 
-export async function sessionContext(rt: Runtime): Promise<string> {
+/** This repo's memory block (own sessions, pinned and recent memories). */
+export function memoryContext(rt: Runtime, options: { compact?: boolean; maxBytes?: number } = {}): string {
+  const project = rt.identity.agent.repo;
+  return formatMemoryContext({
+    project,
+    sessions: rt.store.recentSessions(project, 5),
+    pinned: rt.store.recent(project, 20, true),
+    recent: rt.store.recent(project, 20),
+    ...options,
+  });
+}
+
+async function crossRepoContext(rt: Runtime): Promise<string> {
   const { sync } = await runCheckpoint(rt);
   const [agents, checkpoints, inbox] = await Promise.all([
     rt.remote.listAgents(),
@@ -108,6 +138,52 @@ export async function sessionContext(rt: Runtime): Promise<string> {
     now: rt.clock.now(),
     staleMinutes: rt.config.agentStaleMinutes,
   });
+}
+
+/** Local memory always comes first: it works even when the shared backend is unreachable. */
+async function withCrossRepo(rt: Runtime, local: string): Promise<string> {
+  try {
+    return `${local}\n\n${await crossRepoContext(rt)}`;
+  } catch (error) {
+    return `${local}\n\n# orchestra-man\nBackend compartido no disponible: ${(error as Error).message}`;
+  }
+}
+
+const startSession = (rt: Runtime, hook: HookInput) => {
+  if (hook.session_id)
+    rt.store.startSession({ id: hook.session_id, project: rt.identity.agent.repo, directory: hook.cwd ?? rt.identity.repoRoot });
+};
+
+/** SessionStart (startup, resume, clear). */
+export async function sessionStart(rt: Runtime, hook: HookInput): Promise<string> {
+  startSession(rt, hook);
+  return withCrossRepo(rt, memoryContext(rt, { compact: true }));
+}
+
+/** SessionStart after compaction: the summary of what happened must be saved before continuing. */
+export async function postCompact(rt: Runtime, hook: HookInput): Promise<string> {
+  startSession(rt, hook);
+  const steps = [
+    "# orchestra-man: el contexto se compactó",
+    "Antes de seguir, en este orden:",
+    "1. Llamá a orchestra_session_summary con el contenido del resumen compactado (Goal, Discoveries, Accomplished, Next Steps, Relevant Files). Sin esto se pierde lo hecho antes de compactar.",
+    "2. Leé la memoria de abajo y, si hace falta más, orchestra_context u orchestra_search.",
+    "3. Recién entonces continuá con la tarea.",
+  ].join("\n");
+  return withCrossRepo(rt, `${steps}\n\n${memoryContext(rt)}`);
+}
+
+/** SessionEnd: close the session and push the last changes. */
+export async function sessionEnd(rt: Runtime, hook: HookInput): Promise<void> {
+  if (hook.session_id) rt.store.endSession(hook.session_id);
+  await runCheckpoint(rt);
+}
+
+/** SubagentStop: saves "Key Learnings" items from the subagent's last message (passive capture). */
+export function subagentStop(rt: Runtime, hook: HookInput) {
+  const content = hook.last_assistant_message || hook.stdout || "";
+  if (!content.trim()) return { extracted: 0, saved: 0, duplicates: 0 };
+  return rt.store.capturePassive({ project: rt.identity.agent.repo, sessionId: hook.session_id ?? null, content });
 }
 
 export interface WatchOptions {

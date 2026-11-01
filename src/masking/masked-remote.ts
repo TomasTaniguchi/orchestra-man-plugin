@@ -15,7 +15,9 @@ export function maskedRemote(remote: Remote, mask: Mask): Remote {
     upsertMemories: (batch) =>
       remote.upsertMemories({
         ...batch,
-        items: batch.items.map((item) => ({ ...item, title: mask(item.title), content: mask(item.content) })),
+        items: batch.items.map((item) =>
+          "deleted" in item ? item : { ...item, title: mask(item.title), content: mask(item.content) },
+        ),
       }),
     saveCheckpoint: (checkpoint) => remote.saveCheckpoint({ ...checkpoint, summary: mask(checkpoint.summary) }),
     createTask: (task) => remote.createTask({ ...task, title: mask(task.title), state: maskDeep(task.state, mask) }),

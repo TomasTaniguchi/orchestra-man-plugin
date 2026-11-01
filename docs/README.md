@@ -17,7 +17,7 @@
 | --- | --- |
 | [architecture/overview.md](architecture/overview.md) | Componentes, puertos y adaptadores, flujo de datos |
 | [architecture/orchestration.md](architecture/orchestration.md) | El grafo de LangGraph, fases, leases y rotación del orquestador |
-| [architecture/memory-and-sync.md](architecture/memory-and-sync.md) | Cómo se replica la memoria de Engram y qué es un checkpoint |
+| [architecture/memory-and-sync.md](architecture/memory-and-sync.md) | La memoria local de cada repo, la sincronización incremental y los checkpoints |
 | [security.md](security.md) | Modelo de amenazas, enmascarado, tokens |
 | [adr/](adr/) | Decisiones de arquitectura y sus razones |
 | [glossary.md](glossary.md) | Términos del proyecto |

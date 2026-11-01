@@ -4,7 +4,7 @@
 
 | Sale (enmascarado) | No sale |
 | --- | --- |
-| Memorias de Engram del repo | Código fuente |
+| Memorias `project` del repo (las `personal` nunca) | Código fuente |
 | Checkpoints: rama, commit, nombres de archivos sin commitear, títulos de memorias | Contenido de archivos |
 | Mensajes entre agentes | Credenciales de git o de GitHub |
 | Estado de tareas: plan, hallazgos, ramas, URLs de PR | El salt de enmascarado |

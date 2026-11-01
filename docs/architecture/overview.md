@@ -11,7 +11,7 @@ flowchart LR
     MCP --> RT[Runtime]
     HOOK --> RT
     WATCH --> RT
-    RT -->|lee GET /observations/recent| ENGRAM[(Engram local)]
+    RT --> MEM[(Memoria local\nSQLite mem_*)]
     RT --> MASK[maskedRemote]
   end
   MASK -->|HTTPS + token| WORKER[Worker de Cloudflare]
@@ -27,7 +27,8 @@ flowchart LR
 | Worker | `src/worker/*` | HTTP, autenticación, wake de codespaces, cron de mantenimiento |
 | Enmascarado | `src/masking/*` | Reglas y decorador `maskedRemote` |
 | Orquestación | `src/orchestration/*` | Grafo de LangGraph y runner con lease |
-| Runtime del plugin | `src/plugin/*` | Config, identidad, Engram, sync, casos de uso, MCP y CLI |
+| Memoria | `src/memory/*` | Memoria local de cada repo: upsert por tema, versiones, dedupe, FTS5, sesiones, contexto |
+| Runtime del plugin | `src/plugin/*` | Config, identidad, sync incremental, casos de uso, MCP y CLI |
 
 ## Puertos y adaptadores
 
@@ -60,13 +61,15 @@ Los tests end-to-end corren el mismo escenario por los dos caminos y exigen resu
 - **Responsabilidad única**: repositorios solo hablan SQL; el servicio solo aplica reglas; el Worker solo traduce HTTP; los nodos del grafo solo deciden el siguiente paso.
 - **Abierto/cerrado**: nuevas reglas de enmascarado, herramientas MCP o rutas se agregan en tablas (`DEFAULT_RULES`, `TOOLS`, `ROUTES`/`HANDLERS`) sin tocar el resto.
 - **Sustitución**: cualquier `Remote` o `SqlDatabase` sirve; los tests lo demuestran con ambos backends.
-- **Inversión de dependencias**: reloj, ids, `fetch`, `exec` (git) y Engram se inyectan. Ningún módulo llama `Date.now()` ni crea singletons, salvo los puntos de entrada en `src/plugin/bin/`.
+- **Inversión de dependencias**: reloj, ids, `fetch`, `exec` (git) y la base local se inyectan. Ningún módulo llama `Date.now()` ni crea singletons, salvo los puntos de entrada en `src/plugin/bin/`.
 
 ## Flujos principales
 
 | Momento | Qué pasa | Código |
 | --- | --- | --- |
-| Abrir Claude Code | Registra el agente, replica la memoria de Engram, guarda un checkpoint e inyecta el contexto (otros repos, bandeja) | `sessionContext` en `src/plugin/commands.ts` |
+| Abrir Claude Code | Abre la sesión, sincroniza la memoria, guarda un checkpoint e inyecta la memoria del repo y el contexto entre repos | `sessionStart` en `src/plugin/commands.ts` |
+| Compactación | Pide guardar el resumen compactado y reinyecta la memoria | `postCompact` |
+| Fin de un subagente | Guarda sus "Key Learnings" | `subagentStop` |
 | Durante la sesión | El monitor consulta la bandeja cada `inboxPollSec` y avisa con una línea por mensaje nuevo; cada `checkpointIntervalSec` repite la sincronización | `watch` |
 | Herramientas MCP | Consultas, mensajes y pasos de tareas | `src/plugin/mcp.ts` |
 | Cerrar Claude Code | Última sincronización y checkpoint | `runCheckpoint` |

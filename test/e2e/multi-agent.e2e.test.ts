@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Message } from "../../src/core/contract";
 import { advanceTask, getTaskState, type OrchestratorDeps, startTask } from "../../src/orchestration/runner";
-import { newMessages, runCheckpoint, sessionContext } from "../../src/plugin/commands";
-import type { EngramObservation } from "../../src/plugin/engram";
+import { newMessages, runCheckpoint, sessionStart } from "../../src/plugin/commands";
 import type { Runtime } from "../../src/plugin/runtime";
 import { type Backend, type BackendKind, dumpAllText, makeBackend } from "../helpers/backends";
-import { testRuntime } from "../helpers/runtime";
+import { type Memory, testRuntime } from "../helpers/runtime";
 import { BASE_URL } from "../helpers/worker";
 
 /**
@@ -17,37 +16,37 @@ import { BASE_URL } from "../helpers/worker";
  * and both must produce identical results.
  */
 
-const PII = ["jane.doe@acme.com", "+54 9 11 4567-8901", "sk_live_51HxYzAbCdEfGhIjKl", "8812345"];
+// Sensitive values, plus a personal memory that must never leave the billing machine.
+const NEVER_STORED = ["jane.doe@acme.com", "+54 9 11 4567-8901", "sk_live_51HxYzAbCdEfGhIjKl", "8812345", "postgres runs on 5433"];
 
-const obs = (id: string, title: string, content: string, topic_key: string | null = null): EngramObservation => ({
-  sync_id: id,
+const mem = (title: string, content: string, topicKey: string | null = null, scope: Memory["scope"] = "project"): Memory => ({
   type: "architecture",
   title,
   content,
-  topic_key,
-  created_at: "2026-10-30T09:00:00Z",
-  updated_at: "2026-10-30T09:00:00Z",
+  topicKey,
+  scope,
 });
 
+// What each repo's Claude saved with orchestra_save in earlier sessions (local memory, unmasked).
 const BILLING_MEMORY = [
-  obs(
-    "bill-1",
+  mem(
     "Invoice API contract",
     "POST /invoices creates an invoice and returns invoiceId. Contact billing owner jane.doe@acme.com or +54 9 11 4567-8901. Key sk_live_51HxYzAbCdEfGhIjKl.",
     "architecture/invoice-api",
   ),
-  obs("bill-2", "Webhook retries", "invoice.paid webhooks retry 3 times with exponential backoff; customer_id=8812345 was the incident."),
+  mem("Webhook retries", "invoice.paid webhooks retry 3 times with exponential backoff; customer_id=8812345 was the incident."),
+  mem("My local DB password", "Personal note: local postgres runs on 5433", null, "personal"),
 ];
-const API_MEMORY = [obs("api-1", "Orders table", "orders has no invoice reference yet; OrderService.create persists orders.")];
-const WEB_MEMORY = [obs("web-1", "Checkout page", "Checkout shows order totals from GET /orders/:id.")];
+const API_MEMORY = [mem("Orders table", "orders has no invoice reference yet; OrderService.create persists orders.")];
+const WEB_MEMORY = [mem("Checkout page", "Checkout shows order totals from GET /orders/:id.")];
 
 function agents(backend: Backend) {
   const config = backend.kind === "d1" ? { mode: "d1" as const, workerUrl: BASE_URL, token: "om_test" } : {};
   const shared = { remote: backend.remote, clock: backend.clock, config };
   return {
-    api: testRuntime({ ...shared, repo: "acme/api", machine: "laptop", observations: API_MEMORY, git: { branch: "main", status: " M src/orders.ts" } }).rt,
-    billing: testRuntime({ ...shared, repo: "acme/billing", machine: "cs-billing", codespace: true, observations: BILLING_MEMORY }).rt,
-    web: testRuntime({ ...shared, repo: "acme/web", machine: "laptop", observations: WEB_MEMORY }).rt,
+    api: testRuntime({ ...shared, repo: "acme/api", machine: "laptop", memories: API_MEMORY, git: { branch: "main", status: " M src/orders.ts" } }).rt,
+    billing: testRuntime({ ...shared, repo: "acme/billing", machine: "cs-billing", codespace: true, memories: BILLING_MEMORY }).rt,
+    web: testRuntime({ ...shared, repo: "acme/web", machine: "laptop", memories: WEB_MEMORY }).rt,
   };
 }
 
@@ -83,13 +82,13 @@ async function runScenario(kind: BackendKind) {
   const seen = { api: new Set<string>(), billing: new Set<string>(), web: new Set<string>() };
   const log: string[] = [];
 
-  // 1. Each repo's Claude starts once: registers, replicates Engram memory (masked) and checkpoints.
+  // 1. Each repo's Claude starts once: opens a session, replicates its memory (masked) and checkpoints.
   backend.clock.advance(60);
-  await sessionContext(billing);
-  await sessionContext(web);
+  await sessionStart(billing, { session_id: "sess-billing" });
+  await sessionStart(web, { session_id: "sess-web" });
   backend.clock.advance(20 * 60); // web goes quiet: it will show as offline
   await runCheckpoint(billing);
-  const apiContext = await sessionContext(api);
+  const apiContext = await sessionStart(api, { session_id: "sess-api" });
 
   // 2. The user asks in acme/api. Its Claude recalls billing's memory even if that codespace is off.
   const recall = await api.remote.searchMemories({ q: "invoice webhook", repo: "acme/billing" });
@@ -136,7 +135,7 @@ describe.each(["d1", "local"] as const)("multi-agent scenario on %s backend", (k
   it("never stores sensitive values, on any table", async () => {
     const { backend } = await runScenario(kind);
     const stored = await dumpAllText(backend.db);
-    for (const value of PII) expect(stored).not.toContain(value);
+    for (const value of NEVER_STORED) expect(stored).not.toContain(value);
     expect(stored).toContain("<email:");
   });
 

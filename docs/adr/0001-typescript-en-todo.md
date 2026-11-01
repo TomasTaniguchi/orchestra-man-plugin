@@ -4,7 +4,7 @@
 
 ## Contexto
 
-Hay tres piezas: un Worker de Cloudflare, un plugin de Claude Code (servidor MCP, hooks, monitor) y la orquestación con LangGraph. Engram, que reutilizamos, está escrito en Go.
+Hay tres piezas: un Worker de Cloudflare, un plugin de Claude Code (servidor MCP, hooks, monitor) y la orquestación con LangGraph. Engram, que tomamos como referencia, está escrito en Go.
 
 ## Decisión
 
@@ -17,6 +17,6 @@ Las tres piezas se escriben en TypeScript, en un solo paquete:
 
 ## Consecuencias
 
-- No se reutiliza código Go de Engram; se reutiliza Engram como servicio (ver [0003](0003-extender-engram-sin-fork.md)).
+- No se reutiliza código Go de Engram; su comportamiento se reprodujo en TypeScript (ver [0008](0008-memoria-propia-local-primero.md)).
 - El plugin requiere Node.js 22.13 o superior, por `node:sqlite`.
 - Un solo `package.json` en lugar de un monorepo con workspaces: menos configuración, y cada artefacto (Worker y bundle del plugin) toma solo lo que importa.

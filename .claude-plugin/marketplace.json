@@ -7,7 +7,7 @@
     {
       "name": "orchestra-man",
       "description": "Shared masked memory on your own Cloudflare D1 Worker (or local SQLite), cross-repo messaging and a LangGraph plan/approve/edit/verify flow.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": { "name": "Tomas Taniguchi" },
       "source": "./plugin",
       "category": "productivity",

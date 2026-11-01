@@ -43,10 +43,14 @@ export const MemoryInput = z.object({
   createdAt: Timestamp,
   updatedAt: Timestamp,
 });
+/** Withdraws a memory (deleted, or moved to personal scope). Carries no content on purpose. */
+export const MemoryDeletion = z.object({ sourceId: Id, updatedAt: Timestamp, deleted: z.literal(true) });
+// Deletion first: an object with `deleted: true` must never be read as an upsert.
+export const MemoryChange = z.union([MemoryDeletion, MemoryInput]);
 export const MemoryBatch = z.object({
   agentId: Id,
   repo: Repo,
-  items: z.array(MemoryInput).min(1).max(LIMITS.memoriesPerBatch),
+  items: z.array(MemoryChange).min(1).max(LIMITS.memoriesPerBatch),
 });
 export const MemorySearch = z.object({
   q: text(200),
@@ -152,6 +156,8 @@ export const ErrorBody = z.object({ error: z.object({ code: ErrorCode, message: 
 export type AgentRegistration = z.input<typeof AgentRegistration>;
 export type Agent = z.infer<typeof Agent>;
 export type MemoryInput = z.input<typeof MemoryInput>;
+export type MemoryDeletion = z.infer<typeof MemoryDeletion>;
+export type MemoryChange = z.input<typeof MemoryChange>;
 export type MemoryBatch = z.input<typeof MemoryBatch>;
 export type MemorySearch = z.input<typeof MemorySearch>;
 export type MemoryHit = z.infer<typeof MemoryHit>;

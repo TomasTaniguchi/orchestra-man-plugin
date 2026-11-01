@@ -39,7 +39,7 @@ Helpers:
 - `testService()`: servicio sobre SQLite en memoria ya migrado.
 - `inProcessWorker()` / `issueToken()`: el Worker real, en proceso.
 - `makeBackend("d1" | "local")`: un backend de producción completo.
-- `testRuntime({ repo, machine, codespace, remote, observations, git })`: un agente con git y Engram falsos.
+- `testRuntime({ repo, machine, codespace, remote, memories, git })`: un agente con su memoria local precargada y git falso.
 
 ## Recetas
 

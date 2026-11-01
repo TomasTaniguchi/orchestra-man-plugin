@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
-import { runCheckpoint, sessionContext, watch } from "./commands";
+import { type HookInput, parseHookInput, postCompact, runCheckpoint, sessionEnd, sessionStart, subagentStop, watch } from "./commands";
 import { type Config, CONFIG_KEYS, coerce, configPath, readConfigFile, redactConfig, writeConfigFile } from "./config";
 import { createRuntime, type Runtime, type RuntimeOptions } from "./runtime";
 
@@ -13,8 +13,10 @@ export interface CliIo {
 
 export const USAGE = `orchestra-man <command>
 
-  session-start            Register, sync, checkpoint and print context (SessionStart hook)
-  session-end              Final sync and checkpoint (SessionEnd hook)
+  session-start            Open the session, sync, checkpoint and print context (SessionStart hook)
+  post-compact             Print recovery steps and memory after a compaction (SessionStart "compact")
+  session-end              Close the session, final sync and checkpoint (SessionEnd hook)
+  subagent-stop            Save "Key Learnings" from a subagent's output (SubagentStop hook)
   watch                    Monitor loop: inbox notifications and periodic checkpoints
   sync                     Sync and checkpoint now, print the result
   status                   Print the effective configuration (secrets shortened)
@@ -65,12 +67,22 @@ function configure(args: string[], env: NodeJS.ProcessEnv, io: CliIo): Promise<n
 export async function runCli(argv: string[], io: CliIo, options: RuntimeOptions = {}): Promise<number> {
   const [command, ...rest] = argv;
   const env = options.env ?? process.env;
-  const runtime = (): Runtime => createRuntime(options);
+  const runtime = (cwd?: string): Runtime => createRuntime(cwd ? { ...options, cwd } : options);
+  /** Hooks receive Claude Code's event JSON on stdin; its cwd is the most reliable project dir. */
+  const hook = (run: (rt: Runtime, input: HookInput) => Promise<void>) =>
+    hookSafe(io, async () => {
+      const input = parseHookInput(await io.readStdin());
+      await run(runtime(input.cwd), input);
+    });
   switch (command) {
     case "session-start":
-      return hookSafe(io, async () => io.out(await sessionContext(runtime())));
+      return hook(async (rt, input) => io.out(await sessionStart(rt, input)));
+    case "post-compact":
+      return hook(async (rt, input) => io.out(await postCompact(rt, input)));
     case "session-end":
-      return hookSafe(io, async () => void (await runCheckpoint(runtime())));
+      return hook(async (rt, input) => sessionEnd(rt, input));
+    case "subagent-stop":
+      return hook(async (rt, input) => void subagentStop(rt, input));
     case "watch":
       return hookSafe(io, () => watch(runtime(), { print: io.out, sleep: (ms) => sleep(ms) }));
     case "sync": {
@@ -80,7 +92,7 @@ export async function runCli(argv: string[], io: CliIo, options: RuntimeOptions 
     }
     case "status": {
       const rt = runtime();
-      io.out(JSON.stringify({ agent: rt.identity.agent, project: rt.project, config: redactConfig(rt.config) }, null, 2));
+      io.out(JSON.stringify({ agent: rt.identity.agent, syncTarget: rt.syncTarget, config: redactConfig(rt.config) }, null, 2));
       return 0;
     }
     case "configure":

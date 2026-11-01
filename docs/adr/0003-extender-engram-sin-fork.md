@@ -1,6 +1,6 @@
 # 0003. Extender Engram sin forkearlo, con contrato propio
 
-**Estado**: aceptada (2026-10-31)
+**Estado**: reemplazada por [0008](0008-memoria-propia-local-primero.md) en la versión 0.2.0
 
 ## Contexto
 

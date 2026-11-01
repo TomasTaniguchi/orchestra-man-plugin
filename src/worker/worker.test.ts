@@ -27,7 +27,7 @@ describe("worker http", () => {
     const { fetch } = inProcessWorker();
     const response = await call(fetch, "GET", "/v1/health");
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: "ok", service: "orchestra-man", version: "0.1.0" });
+    expect(await response.json()).toEqual({ status: "ok", service: "orchestra-man", version: "0.2.0" });
   });
 
   it("requires a valid agent token and rejects revoked ones", async () => {

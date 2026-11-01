@@ -28,7 +28,7 @@ Ejecutalos vos con Bash, por ejemplo:
 node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" configure --set mode=d1 --set workerUrl=https://orchestra-man.<subdominio>.workers.dev
 ```
 
-Otras claves: `engramUrl`, `engramProject`, `checkpointIntervalSec` (mínimo 60), `inboxPollSec`, `agentStaleMinutes`, `localDbPath`, `maskPatterns` (array JSON de regex extra, por ejemplo `'["CUST-\\d{6}"]'`).
+Otras claves: `checkpointIntervalSec` (mínimo 60), `inboxPollSec`, `agentStaleMinutes`, `localDbPath`, `maskPatterns` (array JSON de regex extra, por ejemplo `'["CUST-\\d{6}"]'`).
 
 ## 3. El token: nunca por el chat
 

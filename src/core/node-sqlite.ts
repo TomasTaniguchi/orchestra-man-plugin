@@ -6,7 +6,9 @@ export interface NodeSqliteDatabase extends SqlDatabase {
   exec(sql: string): void;
   /** Synchronous variants, for code that must run inside an explicit transaction. */
   selectSync(sql: string, ...values: SqlValue[]): Record<string, unknown>[];
-  runSync(sql: string, ...values: SqlValue[]): void;
+  runSync(sql: string, ...values: SqlValue[]): { changes: number; lastInsertRowid: number };
+  /** Runs `fn` inside BEGIN IMMEDIATE … COMMIT, rolling back on error. */
+  transaction<T>(fn: () => T): T;
   close(): void;
 }
 
@@ -77,7 +79,21 @@ export function openNodeSqlite(path: string): NodeSqliteDatabase {
     },
     exec: (sql) => db.exec(sql),
     selectSync: (sql, ...values) => new NodeStatement(db, sql, values).allSync(),
-    runSync: (sql, ...values) => void new NodeStatement(db, sql, values).runSync(),
+    runSync: (sql, ...values) => {
+      const r = db.prepare(sql).run(...values.map((v) => v ?? null));
+      return { changes: Number(r.changes), lastInsertRowid: Number(r.lastInsertRowid) };
+    },
+    transaction(fn) {
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        const result = fn();
+        db.exec("COMMIT");
+        return result;
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
+    },
     close: () => db.close(),
   };
 }

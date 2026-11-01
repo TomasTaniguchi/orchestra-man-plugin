@@ -5,17 +5,17 @@ import { describe, expect, it } from "vitest";
 import { agentA, testService } from "../../test/helpers/fixtures";
 import { BASE_URL, inProcessWorker, issueToken } from "../../test/helpers/worker";
 import { coerce, readConfigFile, redactConfig, resolveConfig, writeConfigFile } from "./config";
-import { type EngramObservation, engramClient } from "./engram";
 import { httpRemote } from "./http-remote";
 import { detectIdentity, type Exec, readGitState, repoFromRemote } from "./identity";
-import { checkpointSummary, chunk, syncMemories, toMemory } from "./sync";
+import { checkpointSummary, chunk, SYNC_WINDOW, syncMemories, toChange } from "./sync";
+import { testRuntime } from "../../test/helpers/runtime";
 
 const SALT = "0123456789abcdef0123";
 
 describe("config", () => {
   it("defaults to local mode and applies env over file", () => {
     const config = resolveConfig({ maskSalt: SALT, inboxPollSec: 60 }, { ORCHESTRA_INBOX_POLL: "20" }, "/home/me");
-    expect(config).toMatchObject({ mode: "local", inboxPollSec: 20, engramUrl: "http://127.0.0.1:7437" });
+    expect(config).toMatchObject({ mode: "local", inboxPollSec: 20 });
     expect(config.localDbPath).toBe("/home/me/.local/share/orchestra-man/orchestra.db");
   });
 
@@ -32,7 +32,7 @@ describe("config", () => {
   it("coerces CLI values", () => {
     expect(coerce("checkpointIntervalSec", "120")).toBe(120);
     expect(coerce("maskPatterns", '["CUST-\\\\d+"]')).toEqual(["CUST-\\d+"]);
-    expect(coerce("engramProject", "")).toBeNull();
+    expect(coerce("workerUrl", "")).toBeNull();
   });
 
   it("writes a private file with a generated salt and merges patches", () => {
@@ -80,23 +80,13 @@ describe("identity", () => {
   });
 });
 
-const obs = (n: number, overrides: Partial<EngramObservation> = {}): EngramObservation => ({
-  sync_id: `obs-${n}`,
-  type: "decision",
-  title: `Decision ${n}`,
-  content: `Content ${n}`,
-  topic_key: null,
-  created_at: "2026-10-30 10:00:00",
-  updated_at: "2026-10-30 10:00:00",
-  ...overrides,
-});
-
 describe("sync", () => {
-  it("maps observations and drops deleted or empty ones", () => {
-    expect(toMemory(obs(1, { topic_key: "architecture/auth" }))).toMatchObject({ sourceId: "obs-1", topicKey: "architecture/auth" });
-    expect(toMemory(obs(2, { deleted_at: "x" }))).toBeNull();
-    expect(toMemory(obs(3, { content: "  " }))).toBeNull();
-    expect(toMemory(obs(4, { content: "x".repeat(70_000) }))?.content).toHaveLength(64_000);
+  it("maps memories to changes and withdraws deleted or personal ones without content", () => {
+    const { store } = testRuntime({ memories: [{ type: "decision", title: "Public", content: "shared content", topicKey: "decision/x" }] });
+    const [pub] = store.changesSince("t", "acme/api", 10);
+    expect(toChange(pub!)).toMatchObject({ sourceId: "acme/api:obs-1", title: "Public", topicKey: "decision/x" });
+    expect(toChange({ ...pub!, scope: "personal" })).toEqual({ sourceId: "acme/api:obs-1", updatedAt: pub!.updatedAt, deleted: true });
+    expect(toChange({ ...pub!, deletedAt: "x" })).toMatchObject({ deleted: true });
   });
 
   it("chunks", () => {
@@ -104,29 +94,34 @@ describe("sync", () => {
     expect(chunk([], 2)).toEqual([]);
   });
 
-  it("replicates Engram observations in batches of 50", async () => {
-    const { service } = testService();
-    const observations = Array.from({ length: 120 }, (_, i) => obs(i));
-    const engram = { recentObservations: async () => observations };
-    const identity = { repoRoot: "/r", agent: { ...agentA, codespaceName: null } };
-    const result = await syncMemories({ engram, remote: service, identity, project: "api" });
-    expect(result).toMatchObject({ status: "synced", read: 120, upserted: 120, batches: 3 });
-    expect(result.recentTitles).toHaveLength(10);
-    const again = await syncMemories({ engram, remote: service, identity, project: "api" });
-    expect(again.upserted).toBe(120); // same updated_at re-applies idempotently
+  it("pushes only new changes, in batches of 50, across several windows", async () => {
+    const memories = Array.from({ length: SYNC_WINDOW + 20 }, (_, i) => ({ type: "note", title: `Memory ${i}`, content: `Body number ${i}` }));
+    const { rt, service, store } = testRuntime({ memories });
+    const first = await syncMemories({ store, remote: rt.remote, identity: rt.identity, target: rt.syncTarget });
+    expect(first).toMatchObject({ sent: 220, applied: 220, batches: 5, pending: false });
+    expect(first.recentTitles).toHaveLength(10);
+    expect((await syncMemories({ store, remote: rt.remote, identity: rt.identity, target: rt.syncTarget })).sent).toBe(0);
+
+    store.delete(1, "acme/api");
+    const withdrawn = await syncMemories({ store, remote: rt.remote, identity: rt.identity, target: rt.syncTarget });
+    expect(withdrawn).toMatchObject({ sent: 1, applied: 1 });
+    expect(await service.searchMemories({ q: "Memory 0", repo: "acme/api", limit: 50 })).not.toContainEqual(
+      expect.objectContaining({ title: "Memory 0" }),
+    );
   });
 
-  it("reports Engram being down instead of failing", async () => {
-    const engram = engramClient("http://127.0.0.1:1", async () => {
-      throw new Error("ECONNREFUSED");
-    });
-    const result = await syncMemories({
-      engram,
-      remote: testService().service,
-      identity: { repoRoot: "/r", agent: { ...agentA, codespaceName: null } },
-      project: "api",
-    });
-    expect(result).toMatchObject({ status: "engram-unavailable", upserted: 0 });
+  it("keeps the cursor when the backend fails, so nothing is lost", async () => {
+    const { rt, store } = testRuntime({ memories: [{ type: "note", title: "Kept", content: "Must not be lost" }] });
+    const failing = { ...rt.remote, upsertMemories: () => Promise.reject(new Error("offline")) };
+    await expect(syncMemories({ store, remote: failing, identity: rt.identity, target: rt.syncTarget })).rejects.toThrow("offline");
+    expect((await syncMemories({ store, remote: rt.remote, identity: rt.identity, target: rt.syncTarget })).sent).toBe(1);
+  });
+
+  it("publishes personal memories nowhere", async () => {
+    const { rt, service, store } = testRuntime({ memories: [{ type: "preference", title: "My editor", content: "I prefer vim keybindings", scope: "personal" }] });
+    await syncMemories({ store, remote: rt.remote, identity: rt.identity, target: rt.syncTarget });
+    expect(await service.searchMemories({ q: "vim" })).toEqual([]);
+    expect(rt.store.search({ project: "acme/api", q: "vim" })).toHaveLength(1);
   });
 
   it("summarises a checkpoint", () => {

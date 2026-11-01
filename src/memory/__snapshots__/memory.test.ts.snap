@@ -1,0 +1,18 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`search, pins, timeline, context > formats the session context (snapshot) and bounds its size 1`] = `
+"## Memoria de sesiones anteriores (acme/api)
+
+### Sesiones recientes
+- 2026-10-31T12:01:00.000Z (abierta)
+- 2026-10-31T12:00:00.000Z: ## Goal Ship D1 sync ## Accomplished Batching
+
+### Fijadas
+- [decision] Chose D1 over KV (#2, decision/storage): What: D1. Why: SQL and FTS5.
+
+### Recientes
+- [bugfix] Fixed N+1 in orders (#3, personal): Eager loading in OrderList
+- [session_summary] Resumen de sesión: Goal (#1, session/sess-1): ## Goal Ship D1 sync ## Accomplished Batching
+
+Contenido completo: orchestra_get con el #id. Búsqueda: orchestra_search."
+`;

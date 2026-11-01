@@ -6,7 +6,10 @@
 | **Orquestador** | El agente que tiene el lease de una tarea. Al principio, el que la creó; puede rotar |
 | **Lease** | Permiso exclusivo y temporal (10 minutos, renovable) para ejecutar pasos de una tarea |
 | **Backend** | Dónde se guarda lo compartido: tu Worker con D1 (modo `d1`) o un SQLite local (modo `local`) |
-| **Memoria** | Una observación de Engram replicada y enmascarada en el backend |
+| **Memoria** | Conocimiento curado que guarda un agente con `orchestra_save`. Vive en el SQLite local y, si es `project`, se publica enmascarado en el backend |
+| **Alcance** | `project` (se comparte) o `personal` (nunca sale de la máquina) |
+| **topic_key** | Clave estable de un tema (`architecture/invoice-api`). Guardar con la misma clave actualiza la memoria y conserva la versión anterior |
+| **change_seq** | Secuencia monótona de cambios de la memoria local; la sincronización avanza por ella |
 | **Checkpoint** | Foto de un repo: rama, commit, archivos sin commitear y memorias recientes |
 | **Bandeja** | Mensajes dirigidos a un repo, no a una máquina: cualquier agente de ese repo puede atenderlos |
 | **Fase** | Etapa del grafo: investigate, plan, approve, edit, verify, propose, done, cancelled |

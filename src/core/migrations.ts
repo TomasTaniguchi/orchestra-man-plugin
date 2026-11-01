@@ -19,19 +19,14 @@ export function applyMigrations(db: NodeSqliteDatabase, migrations: Migration[],
   db.exec("CREATE TABLE IF NOT EXISTS _orchestra_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)");
   const applied: string[] = [];
   for (const m of migrations) {
-    db.exec("BEGIN IMMEDIATE");
-    try {
+    db.transaction(() => {
       // Re-checked inside the transaction so concurrent sessions never apply a migration twice.
       if (db.selectSync("SELECT 1 FROM _orchestra_migrations WHERE name = ?", m.name).length === 0) {
         db.exec(m.sql);
         db.runSync("INSERT INTO _orchestra_migrations (name, applied_at) VALUES (?, ?)", m.name, now);
         applied.push(m.name);
       }
-      db.exec("COMMIT");
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
+    });
   }
   return applied;
 }

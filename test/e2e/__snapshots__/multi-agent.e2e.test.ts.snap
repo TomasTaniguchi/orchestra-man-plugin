@@ -213,8 +213,8 @@ recent memories:
 commit: 0123456789abcdef0123456789abcdef01234567
 uncommitted files (0): none
 recent memories:
-- Invoice API contract
-- Webhook retries",
+- Webhook retries
+- Invoice API contract",
         "memories": [
           {
             "snippet": "POST /[invoices] creates an invoice and returns invoiceId. Contact [billing] owner <email:e3982a21> or <phone:631bb2f5>. Key <api_key:<secret_assignment:4fed32cd>",
@@ -299,27 +299,37 @@ exports[`multi-agent scenario > matches the expected end-to-end outcome (snapsho
   {
     "repo": "acme/billing",
     "snippet": "[invoice].paid [webhooks] retry 3 times with exponential backoff; customer_id=<id:6a394990> was the incident.",
-    "sourceId": "bill-2",
+    "sourceId": "acme/billing:obs-2",
     "title": "Webhook retries",
     "topicKey": null,
     "type": "architecture",
-    "updatedAt": "2026-10-30T09:00:00Z",
+    "updatedAt": "2026-10-31T12:00:00.000Z",
   },
   {
     "repo": "acme/billing",
     "snippet": "POST /[invoices] creates an [invoice] and returns [invoiceId]. Contact billing owner <email:e3982a21> or <phone:631bb2f5>. Key <api_key:01883192>.",
-    "sourceId": "bill-1",
+    "sourceId": "acme/billing:obs-1",
     "title": "Invoice API contract",
     "topicKey": "architecture/invoice-api",
     "type": "architecture",
-    "updatedAt": "2026-10-30T09:00:00Z",
+    "updatedAt": "2026-10-31T12:00:00.000Z",
   },
 ]
 `;
 
 exports[`multi-agent scenario > matches the expected end-to-end outcome (snapshots) > session context injected in acme/api 1`] = `
-"# orchestra-man
-Agente acme/api#laptop (local) · backend d1 · memorias de Engram replicadas: 1.
+"## Memoria de sesiones anteriores (acme/api)
+
+### Sesiones recientes
+- 2026-10-31T12:21:00.000Z (abierta)
+
+### Recientes
+- [architecture] Orders table (#1)
+
+Contenido completo: orchestra_get con el #id. Búsqueda: orchestra_search.
+
+# orchestra-man
+Agente acme/api#laptop (local) · backend d1 · memorias sincronizadas: 1.
 
 ## Otros repositorios
 - acme/billing: online · cs-billing (codespace) · último checkpoint 2026-10-31T12:21:00.000Z en main@0123456
@@ -328,5 +338,5 @@ Agente acme/api#laptop (local) · backend d1 · memorias de Engram replicadas: 1
 ## Bandeja (0 sin leer)
 - vacía
 
-Para trabajo que cruza repositorios seguí la skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint."
+Memoria de este repo: seguí la skill orchestra-man:memory. Trabajo entre repositorios: skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint."
 `;
