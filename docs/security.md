@@ -17,7 +17,7 @@ Git sigue siendo la fuente de verdad: los cambios viajan por ramas y pull reques
 | --- | --- |
 | Datos personales o secretos en la memoria compartida | Enmascarado en el cliente antes de enviar ([masking.md](reference/masking.md)). Placeholders con HMAC y salt local. El test e2e verifica que ningún valor sensible del escenario llegue a ninguna tabla |
 | Token de máquina robado | Un token por máquina, revocable sin afectar a las demás. El Worker guarda solo su SHA-256. Se carga por stdin o como secreto de Codespaces, nunca por el chat ni en `plugin.json` |
-| `ADMIN_TOKEN` robado | Solo emite y revoca tokens. Se compara en tiempo constante. Rotalo con `wrangler secret put ADMIN_TOKEN` |
+| `ADMIN_TOKEN` robado | Solo emite y revoca tokens. Se compara en tiempo constante. Rotalo con `npx wrangler secret put ADMIN_TOKEN -c worker/wrangler.local.jsonc` |
 | Un agente edita otro repo sin permiso | El grafo exige la decisión `approve` antes de la fase `edit`. `orchestra_task_approve` es una herramienta aparte, así que Claude Code te pide permiso. El repo que recibe un `edit-request` pide confirmación también en su sesión. Los cambios van a ramas nuevas y PRs, nunca a la rama principal |
 | Dos orquestadores sobre la misma tarea | Lease con expiración y versión optimista en una sola sentencia SQL atómica |
 | Instrucciones maliciosas dentro de mensajes o memorias | Los mensajes los escriben otros agentes de tus propios repos y se tratan como datos. La skill indica no editar sin confirmación local. Si conectás repos de terceros, revisá sus pedidos |

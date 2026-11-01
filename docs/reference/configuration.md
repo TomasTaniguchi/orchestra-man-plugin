@@ -42,7 +42,7 @@ Usá secretos de GitHub Codespaces (`ORCHESTRA_URL`, `ORCHESTRA_TOKEN`, `ORCHEST
 
 ## Variables del Worker
 
-En `worker/wrangler.jsonc` (`vars`) y como secretos de wrangler:
+En `vars` de tu `worker/wrangler.local.jsonc` (copia personal de la plantilla `worker/wrangler.jsonc`) y como secretos de wrangler:
 
 | Nombre | Tipo | Descripción |
 | --- | --- | --- |

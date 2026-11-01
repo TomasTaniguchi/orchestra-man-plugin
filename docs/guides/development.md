@@ -31,6 +31,7 @@ claude plugin validate ./plugin
 | Contrato | `test/e2e/contract.test.ts` | `docs/api/openapi.yaml` documenta exactamente las rutas de `src/core/routes.ts` |
 | Escenario | `test/e2e/multi-agent.e2e.test.ts` | Tres repos y el flujo completo **en los dos backends**, con resultados idénticos y sin datos sensibles en ninguna tabla |
 | Artefacto | `test/e2e/bundle.e2e.test.ts` | `plugin/dist` ejecutado como procesos: hooks y MCP por stdio sobre dos clones git reales |
+| Script de despliegue | `test/e2e/setup-worker.e2e.test.ts`, `test/scripts/` | `scripts/setup-worker.sh` real con un wrangler falso (`test/helpers/fake-wrangler.mjs`) y el Worker real por HTTP. CI lo corre en macOS (bash 3.2) y Windows (Git Bash); shellcheck en Linux |
 
 Todo es determinista: el reloj (`manualClock`) y los ids (`sequentialIds`) se inyectan desde `test/helpers/fixtures.ts`. Los snapshots no deberían cambiar entre corridas; si cambian, es un cambio de comportamiento.
 
