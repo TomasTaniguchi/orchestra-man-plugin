@@ -11,9 +11,10 @@
     "test:update": "vitest run -u",
     "check": "npm run typecheck && npm test && npm run build",
     "worker:dev": "wrangler dev -c worker/wrangler.jsonc",
-    "worker:deploy": "wrangler deploy -c worker/wrangler.jsonc",
-    "worker:migrate:local": "wrangler d1 migrations apply orchestra-man --local -c worker/wrangler.jsonc",
-    "worker:migrate:remote": "wrangler d1 migrations apply orchestra-man --remote -c worker/wrangler.jsonc"
+    "worker:deploy": "wrangler deploy -c worker/wrangler.local.jsonc",
+    "worker:migrate:local": "wrangler d1 migrations apply DB --local -c worker/wrangler.jsonc",
+    "worker:migrate:remote": "wrangler d1 migrations apply DB --remote -c worker/wrangler.local.jsonc",
+    "worker:setup": "bash scripts/setup-worker.sh"
   },
   "license": "MIT",
   "type": "module",

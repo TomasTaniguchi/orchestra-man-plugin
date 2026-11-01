@@ -21,3 +21,22 @@ jobs:
       - run: npm run check
       - name: plugin/dist is up to date with src/
         run: git diff --exit-code -- plugin/dist || (echo "Run npm run build and commit plugin/dist" && exit 1)
+      - name: shellcheck
+        run: shellcheck scripts/*.sh
+
+  # The Worker setup script must run on every OS a colleague may use.
+  setup-script:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: setup-worker.sh end to end (macOS bash 3.2 / Windows Git Bash)
+        run: npx vitest run test/e2e/setup-worker.e2e.test.ts test/scripts

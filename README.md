@@ -64,7 +64,7 @@ Instalalo en **cada** codespace y clon local que quieras conectar.
 /orchestra-man:configure local
 ```
 
-**Compartido entre máquinas (recomendado):** primero desplegá tu Worker (≈10 minutos, [guía paso a paso](docs/guides/deploy-worker.md)). Después:
+**Compartido entre máquinas (recomendado):** primero desplegá tu Worker con `npm run worker:setup` ([guía](docs/guides/deploy-worker.md)); en la máquina donde lo corrés, el script ya deja el plugin configurado. En las demás:
 
 ```
 /orchestra-man:configure d1
@@ -78,21 +78,16 @@ Al abrir la sesión vas a ver la memoria de tu repo y un bloque `# orchestra-man
 
 ## Armar el Worker con D1 (resumen)
 
-Cada persona despliega **su propio** Worker desde este repo. Es de uso personal: tus datos quedan en tu cuenta.
+Cada persona despliega **su propio** Worker desde este repo. Es de uso personal: tus datos quedan en tu cuenta. Un script interactivo hace todo, en macOS, Linux y Windows (Git Bash o WSL):
 
 ```bash
 git clone https://github.com/TomasTaniguchi/orchestra-man-plugin && cd orchestra-man-plugin && npm ci
-npx wrangler login
-npx wrangler d1 create orchestra-man            # copiá el database_id a worker/wrangler.jsonc
-npm run worker:migrate:remote
-npx wrangler secret put ADMIN_TOKEN -c worker/wrangler.jsonc
-npm run worker:deploy
-# token por máquina (se muestra una sola vez):
-curl -X POST https://orchestra-man.<tu-subdominio>.workers.dev/v1/admin/tokens \
-  -H "Authorization: Bearer $ADMIN_TOKEN" -H "content-type: application/json" -d '{"name":"laptop"}'
+npm run worker:setup
 ```
 
-Opcional: `npx wrangler secret put GITHUB_TOKEN` (PAT clásico con scope `codespace`) habilita `orchestra_wake`, que enciende un codespace apagado. Todo el detalle, incluidos límites de D1 y costos, en [docs/guides/deploy-worker.md](docs/guides/deploy-worker.md).
+El script inicia sesión en Cloudflare, crea la base D1 (o reutiliza una existente), aplica el esquema, despliega y carga los secretos. Al final emite un token para tu máquina y configura el plugin. Te pregunta los nombres, si querés generar el `ADMIN_TOKEN` y, opcionalmente, un `GITHUB_TOKEN` (PAT clásico con scope `codespace`) para que `orchestra_wake` pueda encender codespaces apagados. Tu configuración personal queda en `worker/wrangler.local.jsonc`, que git ignora.
+
+Los pasos manuales, cómo emitir tokens para otras máquinas, los límites de D1 y los backups están en [docs/guides/deploy-worker.md](docs/guides/deploy-worker.md).
 
 ## Uso
 
@@ -133,7 +128,7 @@ Más ejemplos en [docs/guides/usage.md](docs/guides/usage.md). Las 23 herramient
 
 ```bash
 npm ci
-npm run check        # typecheck + 99 tests (unitarios + end-to-end con snapshots) + build
+npm run check        # typecheck + 110 tests (unitarios + end-to-end con snapshots) + build
 ```
 
 Los tests end-to-end corren el escenario completo de tres repos contra **los dos backends** (Worker en proceso sobre SQLite y SQLite local), exigen resultados idénticos y verifican que ningún dato sensible llegue a la base. También ejecutan el bundle real (`plugin/dist`) como procesos, con MCP por stdio. Ver [docs/guides/development.md](docs/guides/development.md).

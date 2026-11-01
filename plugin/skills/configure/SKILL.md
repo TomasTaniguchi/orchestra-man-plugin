@@ -17,7 +17,7 @@ Seguí estos pasos con el usuario. Argumento recibido: `$ARGUMENTS`.
 
 ## 1. Elegir modo
 
-- **d1**: memoria y coordinación compartidas entre máquinas a través del Worker del usuario. Requiere haber desplegado el Worker (guía `docs/guides/deploy-worker.md` del repo del plugin).
+- **d1**: memoria y coordinación compartidas entre máquinas a través del Worker del usuario. Requiere haber desplegado el Worker: en el repo del plugin, `npm run worker:setup` lo hace de forma interactiva y deja configurada esa máquina (guía `docs/guides/deploy-worker.md`).
 - **local**: SQLite en esta máquina. Sirve para varios Claude locales en la misma máquina, o para probar sin nube.
 
 ## 2. Valores no secretos

@@ -18,6 +18,7 @@ Punto de entrada para agentes de IA que trabajan **sobre este repositorio**. Los
 | Actualizar snapshots (¡revisá el diff!) | `npm run test:update` |
 | Generar el bundle (`plugin/dist`) | `npm run build` |
 | Todo lo que corre CI | `npm run check` |
+| Desplegar tu Worker (interactivo) | `npm run worker:setup` (`scripts/setup-worker.sh`) |
 
 `plugin/dist/` está versionado: los usuarios instalan el plugin sin build. **Si cambiás `src/`, corré `npm run build` y commiteá `plugin/dist/`.** CI falla si el bundle quedó desactualizado.
 
@@ -37,6 +38,8 @@ Punto de entrada para agentes de IA que trabajan **sobre este repositorio**. Los
 | `src/memory/` | Memoria local de cada repo (reemplazo de Engram): store, texto, contexto y esquema `mem_*` |
 | `src/plugin/` | Runtime del plugin: config, identidad, sync incremental, casos de uso, MCP y CLI |
 | `migrations/` | Esquema. Lo usan wrangler **y** el modo local |
+| `scripts/setup-worker.sh` | Despliegue interactivo del Worker (bash 3.2+, Git Bash, WSL). La lógica portable vive en `scripts/setup-worker-lib.mjs` |
+| `worker/wrangler.jsonc` | Plantilla versionada. Cada persona usa su copia `worker/wrangler.local.jsonc` (ignorada) |
 | `plugin/` | El plugin instalable (manifest, hooks, monitor, skills y `dist/`) |
 | `docs/api/openapi.yaml` | Contrato legible. `test/e2e/contract.test.ts` lo mantiene sincronizado con las rutas |
 
