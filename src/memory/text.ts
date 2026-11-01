@@ -1,5 +1,7 @@
 // Pure text helpers of the memory store. Ported from Engram's store
 // (stripPrivateTags, hashNormalized, normalizeTopicKey, SuggestTopicKey, ExtractLearnings).
+// Engram: https://github.com/Gentleman-Programming/engram
+// MIT License, Copyright (c) 2026 Alan Buscaglia. Portions of this file derive from it.
 import { createHash } from "node:crypto";
 
 /** `<private>…</private>` is never stored, not even locally. */
