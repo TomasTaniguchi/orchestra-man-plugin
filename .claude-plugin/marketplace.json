@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "orchestra-man",
+  "description": "Multi-agent orchestration across repositories for Claude Code.",
+  "owner": { "name": "Tomas Taniguchi" },
+  "plugins": [
+    {
+      "name": "orchestra-man",
+      "description": "Shared masked memory on your own Cloudflare D1 Worker (or local SQLite), cross-repo messaging and a LangGraph plan/approve/edit/verify flow.",
+      "version": "0.1.0",
+      "author": { "name": "Tomas Taniguchi" },
+      "source": "./plugin",
+      "category": "productivity",
+      "homepage": "https://github.com/TomasTaniguchi/orchestra-man-plugin"
+    }
+  ]
+}

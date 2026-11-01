@@ -110,7 +110,8 @@ describe("sync", () => {
     const engram = { recentObservations: async () => observations };
     const identity = { repoRoot: "/r", agent: { ...agentA, codespaceName: null } };
     const result = await syncMemories({ engram, remote: service, identity, project: "api" });
-    expect(result).toEqual({ status: "synced", read: 120, upserted: 120, batches: 3 });
+    expect(result).toMatchObject({ status: "synced", read: 120, upserted: 120, batches: 3 });
+    expect(result.recentTitles).toHaveLength(10);
     const again = await syncMemories({ engram, remote: service, identity, project: "api" });
     expect(again.upserted).toBe(120); // same updated_at re-applies idempotently
   });

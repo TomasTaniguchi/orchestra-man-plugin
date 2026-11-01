@@ -1,0 +1,7 @@
+[
+  {
+    "name": "orchestra-watch",
+    "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs\" watch",
+    "description": "orchestra-man: messages from other repositories and periodic checkpoints"
+  }
+]

@@ -31,6 +31,8 @@ export interface SyncResult {
   read: number;
   upserted: number;
   batches: number;
+  /** Titles of the newest memories, for the checkpoint summary. */
+  recentTitles: string[];
   detail?: string;
 }
 
@@ -50,7 +52,7 @@ export async function syncMemories(args: {
     observations = await args.engram.recentObservations(args.project, SYNC_WINDOW);
   } catch (error) {
     if (error instanceof EngramUnavailableError)
-      return { status: "engram-unavailable", read: 0, upserted: 0, batches: 0, detail: error.message };
+      return { status: "engram-unavailable", read: 0, upserted: 0, batches: 0, recentTitles: [], detail: error.message };
     throw error;
   }
   const memories = observations.map(toMemory).filter((m): m is MemoryInput => m !== null);
@@ -59,7 +61,13 @@ export async function syncMemories(args: {
   for (const items of batches) {
     upserted += (await args.remote.upsertMemories({ agentId: args.identity.agent.id, repo: args.identity.agent.repo, items })).upserted;
   }
-  return { status: "synced", read: observations.length, upserted, batches: batches.length };
+  return {
+    status: "synced",
+    read: observations.length,
+    upserted,
+    batches: batches.length,
+    recentTitles: memories.slice(0, 10).map((m) => m.title),
+  };
 }
 
 /** A plain-text snapshot of where this repo is, for agents that cannot reach it. */
