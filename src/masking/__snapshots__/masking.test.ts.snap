@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`default rules > redacts secrets and personal data (snapshot) 1`] = `
+"
+Customer <email:bab800ec> (<phone:a1200299>) reported a failed charge.
+Support line <phone:e6a83844>, US <phone:1e91050f>.
+Order id <uuid:6c1147a0>, user_id=<id:3faeb4fa>.
+curl -H "Authorization: Bearer <bearer:b636c7e9>" https://<url_credentials:7e564d3e>@db.internal:5432/app
+export STRIPE_KEY=<api_key:852dc29e>
+password: "<secret_assignment:34da5390>"
+GITHUB_TOKEN <github_token:c3ddb0d8>
+AWS <aws_access_key:7883a6ab>
+jwt <jwt:be016723>
+<private_key:f8d339ae>
+"
+`;
