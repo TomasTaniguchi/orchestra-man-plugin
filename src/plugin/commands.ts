@@ -82,12 +82,18 @@ export interface SessionView {
 }
 
 /** The cross-repo block injected at SessionStart. Pure, so it is snapshot-tested. */
-export function formatSessionContext(view: SessionView): string {
-  const own = view.agent.repo;
+/** One line per other repository: online state, where its agents run and its latest checkpoint. */
+export function formatRepoLines(view: {
+  ownRepo: string;
+  agents: Agent[];
+  checkpoints: Checkpoint[];
+  now: Date;
+  staleMinutes: number;
+}): string[] {
   const repos = [...new Set([...view.agents.map((a) => a.repo), ...view.checkpoints.map((c) => c.repo)])]
-    .filter((r) => r !== own)
+    .filter((r) => r !== view.ownRepo)
     .sort();
-  const repoLines = repos.map((repo) => {
+  return repos.map((repo) => {
     const agents = view.agents.filter((a) => a.repo === repo);
     const online = agents.some((a) => isOnline(a, view.now, view.staleMinutes));
     const where = agents.map((a) => `${a.machine} (${a.kind})`).join(", ") || "sin agentes registrados";
@@ -95,6 +101,10 @@ export function formatSessionContext(view: SessionView): string {
     const ckptText = ckpt ? `último checkpoint ${ckpt.createdAt} en ${ckpt.branch}@${shortSha(ckpt.commitSha)}` : "sin checkpoint";
     return `- ${repo}: ${online ? "online" : "offline"} · ${where} · ${ckptText}`;
   });
+}
+
+export function formatSessionContext(view: SessionView): string {
+  const repoLines = formatRepoLines({ ownRepo: view.agent.repo, ...view });
   return [
     "# orchestra-man",
     `Agente ${view.agent.id} (${view.agent.kind}) · backend ${view.mode} · memorias sincronizadas: ${view.sync.sent}${view.sync.pending ? " (quedan pendientes)" : ""}.`,

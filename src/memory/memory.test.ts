@@ -199,6 +199,21 @@ describe("sessions and passive capture", () => {
   });
 });
 
+describe("stats", () => {
+  it("counts live memories by scope and changes not yet synced to a target", () => {
+    const { s } = store();
+    const a = save(s).observation;
+    save(s, { title: "Mine", content: "personal note here", scope: "personal" });
+    s.setPinned(a.id, P, true);
+    s.startSession({ id: "sess-1", project: P });
+    expect(s.stats(P, "d1")).toMatchObject({ project: 1, personal: 1, pinned: 1, sessions: 1, pendingSync: 2 });
+    s.advanceCursor("d1", P, s.changesSince("d1", P, 10).at(-1)!);
+    s.delete(a.id, P);
+    expect(s.stats(P, "d1")).toMatchObject({ project: 0, personal: 1, pinned: 0, pendingSync: 1 });
+    expect(s.stats("acme/empty", "d1")).toEqual({ project: 0, personal: 0, pinned: 0, sessions: 0, pendingSync: 0, lastChangeAt: null });
+  });
+});
+
 describe("incremental changes", () => {
   it("follows the change sequence, so equal timestamps never hide a change, and includes personal rows", () => {
     const { s } = store();

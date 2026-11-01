@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "orchestra-man",
   "displayName": "Orchestra Man",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Multi-agent code generation and correction across repositories: shared, masked memory on your own Cloudflare D1 Worker (or local SQLite), cross-repo messaging and a LangGraph-orchestrated plan/approve/edit/verify flow.",
   "author": { "name": "Tomas Taniguchi" },
   "homepage": "https://github.com/TomasTaniguchi/orchestra-man-plugin",

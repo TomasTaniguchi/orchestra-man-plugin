@@ -26,7 +26,7 @@ Local, al instante y sin enmascarar. Lo `project` se publica en la siguiente sin
 
 | Herramienta | Entrada | Devuelve |
 | --- | --- | --- |
-| `orchestra_status` | — | Este agente, el modo, la salud del backend y cada agente con `online` |
+| `orchestra_status` | — | El diagnóstico en texto: configuración, backend y versión, este agente, memoria del repo (y cambios sin publicar), otros repos online/offline, bandeja y qué resolver. Es lo que muestra `/orchestra-man:help` y lo mismo que `cli.mjs doctor` |
 | `orchestra_recall` | `query`, `repo?`, `limit?` (1–50) | Memorias que coinciden, con `snippet` (coincidencias entre `[ ]`). Funciona aunque el codespace del repo esté apagado |
 | `orchestra_checkpoints` | `repo?` | Último checkpoint por repo: rama, commit, archivos sin commitear, memorias recientes |
 | `orchestra_sync` | — | Publica ahora los cambios de memoria de este repo (enmascarados, solo `project`) y guarda un checkpoint |

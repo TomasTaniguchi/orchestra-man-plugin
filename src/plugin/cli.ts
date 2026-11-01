@@ -3,6 +3,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import { type HookInput, parseHookInput, postCompact, runCheckpoint, sessionEnd, sessionStart, subagentStop, watch } from "./commands";
 import { type Config, CONFIG_KEYS, coerce, configPath, readConfigFile, redactConfig, writeConfigFile } from "./config";
+import { configErrorReport, diagnose, formatReport, hasErrors } from "./doctor";
 import { createRuntime, type Runtime, type RuntimeOptions } from "./runtime";
 
 export interface CliIo {
@@ -18,6 +19,7 @@ export const USAGE = `orchestra-man <command>
   session-end              Close the session, final sync and checkpoint (SessionEnd hook)
   subagent-stop            Save "Key Learnings" from a subagent's output (SubagentStop hook)
   watch                    Monitor loop: inbox notifications and periodic checkpoints
+  doctor                   Diagnose configuration, backend, memory and other repos (what /orchestra-man:help shows)
   sync                     Sync and checkpoint now, print the result
   status                   Print the effective configuration (secrets shortened)
   configure [options]      Edit ~/.config/orchestra-man/config.json (0600)
@@ -89,6 +91,19 @@ export async function runCli(argv: string[], io: CliIo, options: RuntimeOptions 
       const result = await runCheckpoint(runtime());
       io.out(JSON.stringify(result, null, 2));
       return 0;
+    }
+    case "doctor": {
+      // Read-only. Never fails on bad configuration: that is exactly what it has to explain.
+      let rt: Runtime | undefined;
+      try {
+        rt = runtime();
+      } catch (error) {
+        io.out(formatReport(configErrorReport(error, configPath(env, options.home ?? homedir()), new Date())));
+        return 1;
+      }
+      const report = await diagnose(rt);
+      io.out(formatReport(report));
+      return hasErrors(report) ? 1 : 0;
     }
     case "status": {
       const rt = runtime();

@@ -83,6 +83,13 @@ describe("bundled plugin (local mode, two clones on one machine)", () => {
     const apiTools = await mcp(api);
     const billingTools = await mcp(billing);
     try {
+      // The diagnosis behind /orchestra-man:help, through MCP and the CLI.
+      const status = await apiTools.call("orchestra_status");
+      expect(status).toMatch(/✓ Backend: responde \(versión 0\.2\.0\)/);
+      expect(status).toMatch(/- acme\/billing: online/);
+      expect(status).toMatch(/Todo en orden\./);
+      expect(execFileSync("node", [join(DIST, "cli.mjs"), "doctor"], { cwd: api, env, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })).toBe(`${status}\n`);
+
       // Memory: billing saves locally; a topic_key save updates in place; personal stays private.
       const saved = await billingTools.call("orchestra_save", {
         title: "Invoice API contract",

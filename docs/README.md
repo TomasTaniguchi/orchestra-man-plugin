@@ -8,7 +8,7 @@
 | --- | --- |
 | [guides/install-plugin.md](guides/install-plugin.md) | Instalar y configurar el plugin en clones locales y codespaces |
 | [guides/deploy-worker.md](guides/deploy-worker.md) | Desplegar tu Worker de Cloudflare con D1, paso a paso |
-| [guides/usage.md](guides/usage.md) | Escenarios de uso: consultas, tareas entre repos, responder pedidos |
+| [guides/usage.md](guides/usage.md) | Escenarios de uso: `/orchestra-man:help`, memoria, consultas, tareas entre repos, responder pedidos |
 | [troubleshooting.md](troubleshooting.md) | Problemas frecuentes y cómo resolverlos |
 
 ## Quiero entenderlo

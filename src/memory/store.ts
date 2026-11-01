@@ -68,6 +68,18 @@ export interface SaveInput {
 
 export type SaveOutcome = "created" | "updated-topic" | "deduplicated";
 
+export interface MemoryStats {
+  /** Live memories shared with the other repositories on the next sync. */
+  project: number;
+  /** Live memories that never leave this machine. */
+  personal: number;
+  pinned: number;
+  sessions: number;
+  /** Changes (saves, edits, deletions) not yet acknowledged by the backend. */
+  pendingSync: number;
+  lastChangeAt: string | null;
+}
+
 export interface SearchHit {
   id: number;
   scope: Scope;
@@ -474,21 +486,49 @@ export class MemoryStore {
     return { extracted: learnings.length, saved, duplicates: learnings.length - saved };
   }
 
+  private cursorOf(target: string, project: string): number {
+    const cursor = this.one("SELECT change_seq FROM mem_sync_cursors WHERE target = ? AND project = ?", target, project);
+    return cursor ? Number(cursor.change_seq) : 0;
+  }
+
   /**
    * Memories changed after the cursor of `target`, including deletions, in change order. All scopes are
    * returned so a memory moved to `personal` can be withdrawn remotely; sync decides what is published.
    * Ordering by change_seq (not by timestamp) never skips a change, even with equal or skewed clocks.
    */
   changesSince(target: string, project: string, limit: number): Observation[] {
-    const cursor = this.one("SELECT change_seq FROM mem_sync_cursors WHERE target = ? AND project = ?", target, project);
     return this.db
       .selectSync(
         "SELECT * FROM mem_observations WHERE project = ? AND change_seq > ? ORDER BY change_seq LIMIT ?",
         project,
-        cursor ? Number(cursor.change_seq) : 0,
+        this.cursorOf(target, project),
         limit,
       )
       .map(toObservation);
+  }
+
+  /** Counts for diagnostics: live memories by scope, pinned, sessions and changes not yet synced to `target`. */
+  stats(project: string, target: string): MemoryStats {
+    const row = this.one(
+      `SELECT
+         coalesce(sum(deleted_at IS NULL AND scope = 'project'), 0) AS project,
+         coalesce(sum(deleted_at IS NULL AND scope = 'personal'), 0) AS personal,
+         coalesce(sum(deleted_at IS NULL AND pinned = 1), 0) AS pinned,
+         coalesce(sum(change_seq > ?), 0) AS pending,
+         max(updated_at) AS last_change
+       FROM mem_observations WHERE project = ?`,
+      this.cursorOf(target, project),
+      project,
+    ) as Row;
+    const sessions = this.one("SELECT count(*) AS n FROM mem_sessions WHERE project = ?", project) as Row;
+    return {
+      project: Number(row.project),
+      personal: Number(row.personal),
+      pinned: Number(row.pinned),
+      sessions: Number(sessions.n),
+      pendingSync: Number(row.pending),
+      lastChangeAt: row.last_change == null ? null : String(row.last_change),
+    };
   }
 
   advanceCursor(target: string, project: string, last: Observation): void {

@@ -74,7 +74,7 @@ El token **nunca se pega en el chat**: la skill te indica un comando para correr
 
 ### 3. Reiniciá Claude Code
 
-Al abrir la sesión vas a ver la memoria de tu repo y un bloque `# orchestra-man` con los otros repos (online u offline), su último checkpoint y tu bandeja.
+Al abrir la sesión vas a ver la memoria de tu repo y un bloque `# orchestra-man` con los otros repos (online u offline), su último checkpoint y tu bandeja. Para confirmar que todo está bien: `/orchestra-man:help`.
 
 ## Armar el Worker con D1 (resumen)
 
@@ -88,6 +88,35 @@ npm run worker:setup
 El script inicia sesión en Cloudflare, crea la base D1 (o reutiliza una existente), aplica el esquema, despliega y carga los secretos. Al final emite un token para tu máquina y configura el plugin. Te pregunta los nombres, si querés generar el `ADMIN_TOKEN` y, opcionalmente, un `GITHUB_TOKEN` (PAT clásico con scope `codespace`) para que `orchestra_wake` pueda encender codespaces apagados. Tu configuración personal queda en `worker/wrangler.local.jsonc`, que git ignora.
 
 Los pasos manuales, cómo emitir tokens para otras máquinas, los límites de D1 y los backups están en [docs/guides/deploy-worker.md](docs/guides/deploy-worker.md).
+
+## Ayuda
+
+```
+/orchestra-man:help              # diagnóstico + guía completa
+/orchestra-man:help memoria      # solo un tema: memoria, repos, tareas, mensajes, configuracion
+```
+
+Muestra cómo está el plugin en esta máquina y, si algo falla, qué hacer:
+
+```
+# orchestra-man · diagnóstico
+
+✓ Configuración: modo d1 · https://orchestra-man.tomas.workers.dev
+✓ Backend: responde (versión 0.2.0)
+✓ Agente: acme/api#laptop (local) · registrado
+✓ Memoria de este repo: 14 compartidas, 2 personales, 1 fijada, 6 sesiones · 3 cambios sin publicar (se publican en la próxima sincronización, o ya con orchestra_sync) · último cambio 2026-11-01T14:02:11.000Z
+
+## Otros repositorios
+- acme/billing: offline · cs-billing (codespace) · último checkpoint 2026-11-01T09:40:00.000Z en main@4f2a9c1
+- acme/web: online · laptop (local) · último checkpoint 2026-11-01T13:58:00.000Z en feat/cart@91be0d2
+
+## Bandeja: 1 sin leer (orchestra_inbox para verlos)
+
+## Estado
+Todo en orden.
+```
+
+Después muestra una guía corta con ejemplos de qué pedirle a Claude. Solo se ejecuta cuando la invocás, así que no ocupa contexto en tus conversaciones. Desde la terminal, `node <ruta-del-plugin>/dist/cli.mjs doctor` da el mismo diagnóstico.
 
 ## Uso
 
@@ -114,7 +143,7 @@ Claude usa `orchestra_recall` sobre la memoria de `acme/billing` y te dice la fe
 
 **Cuando te llega un pedido** de otro repo, el monitor te avisa con una línea `[orchestra-man] Mensaje ...`. Claude lo lee, investiga o edita (y en ese caso te pide confirmación acá también) y responde.
 
-Más ejemplos en [docs/guides/usage.md](docs/guides/usage.md). Las 23 herramientas MCP están en [docs/reference/mcp-tools.md](docs/reference/mcp-tools.md).
+Más ejemplos en [docs/guides/usage.md](docs/guides/usage.md) y en `/orchestra-man:help`. Las 23 herramientas MCP están en [docs/reference/mcp-tools.md](docs/reference/mcp-tools.md).
 
 ## Seguridad y datos
 
@@ -128,7 +157,7 @@ Más ejemplos en [docs/guides/usage.md](docs/guides/usage.md). Las 23 herramient
 
 ```bash
 npm ci
-npm run check        # typecheck + 110 tests (unitarios + end-to-end con snapshots) + build
+npm run check        # typecheck + 119 tests (unitarios + end-to-end con snapshots) + build
 ```
 
 Los tests end-to-end corren el escenario completo de tres repos contra **los dos backends** (Worker en proceso sobre SQLite y SQLite local), exigen resultados idénticos y verifican que ningún dato sensible llegue a la base. También ejecutan el bundle real (`plugin/dist`) como procesos, con MCP por stdio. Ver [docs/guides/development.md](docs/guides/development.md).

@@ -46,8 +46,6 @@ El salt de enmascarado (`maskSalt`) se genera solo la primera vez. Para que un m
 
 ## 5. Verificar
 
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" status
-```
+Llamá a la herramienta `orchestra_status` (o ejecutá `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" doctor`) y mostrale el diagnóstico al usuario. Si la sección "Estado" dice "Todo en orden.", está listo. Si no, resolvé cada punto que indique.
 
-Después llamá a la herramienta `orchestra_status`. Si responde con el `backend` en `ok`, está listo. Recordale al usuario que reinicie la sesión de Claude Code para que el hook de inicio y el monitor tomen la configuración.
+Recordale al usuario que reinicie la sesión de Claude Code para que el hook de inicio y el monitor tomen la configuración, y que `/orchestra-man:help` muestra este diagnóstico y una guía con ejemplos cuando lo necesite.

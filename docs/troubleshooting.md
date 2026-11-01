@@ -2,6 +2,8 @@
 
 | Síntoma | Causa probable | Solución |
 | --- | --- | --- |
+| `! Backend: responde con la versión X; el plugin espera Y` | El Worker quedó en otra versión | En el repo del plugin: `git pull && npm ci && npm run worker:migrate:remote && npm run worker:deploy` |
+| `! Agente: … el repo no tiene remoto git` | Clon sin `origin` | `git remote add origin <url>`: si no, los demás no lo reconocen como `owner/name` |
 | Al abrir la sesión: `orchestra-man is not configured correctly (maskSalt …)` | No hay archivo de configuración ni variables | `/orchestra-man:configure` |
 | `mode is d1 but workerUrl or token is missing` | Modo D1 sin URL o token | `configure --set workerUrl=…` y `configure --token-stdin` |
 | `invalid or revoked token` (`unauthorized`) | Token mal copiado o revocado | Emití uno nuevo ([deploy-worker.md](guides/deploy-worker.md#7-emitir-un-token-por-máquina)) |
@@ -23,9 +25,18 @@
 
 ## Diagnóstico
 
-```bash
-node <ruta-del-plugin>/dist/cli.mjs status   # configuración efectiva e identidad
-node <ruta-del-plugin>/dist/cli.mjs sync     # fuerza una sincronización y muestra el resultado
+Empezá siempre por acá:
+
+```
+/orchestra-man:help
 ```
 
-En Claude Code: `orchestra_status` muestra el backend y qué agentes ve.
+Revisa la configuración, el backend (si responde, si rechaza el token, si la versión del Worker coincide), la identidad del agente, la memoria del repo y los cambios sin publicar, los otros repos y la bandeja. Para cada problema indica qué hacer.
+
+Desde la terminal, sin Claude Code:
+
+```bash
+node <ruta-del-plugin>/dist/cli.mjs doctor   # el mismo diagnóstico; sale con código 1 si hay errores
+node <ruta-del-plugin>/dist/cli.mjs status   # configuración efectiva (secretos acortados) e identidad
+node <ruta-del-plugin>/dist/cli.mjs sync     # fuerza una sincronización y muestra el resultado
+```

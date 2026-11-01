@@ -60,11 +60,13 @@ La primera vez se genera un `maskSalt` aleatorio. **Copialo igual a todas tus m�
 
 ## 3. Verificar
 
-```bash
-node <ruta-del-plugin>/dist/cli.mjs status
+Reiniciá la sesión de Claude Code y corré:
+
+```
+/orchestra-man:help
 ```
 
-En Claude Code, pedile "usá orchestra_status". Después reiniciá la sesión: al abrir deberías ver el bloque `# orchestra-man`.
+Si la sección "Estado" dice "Todo en orden.", está listo. Si no, cada punto dice qué hacer. Al abrir cada sesión vas a ver además el bloque `# orchestra-man`.
 
 ## Permisos
 
