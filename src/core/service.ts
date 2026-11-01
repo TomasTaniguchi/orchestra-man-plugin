@@ -33,6 +33,11 @@ import * as tasks from "./repositories/tasks";
 import * as tokens from "./repositories/tokens";
 import { parse } from "./validate";
 
+/**
+ * Version of the backend API (Worker and local service), reported by /v1/health.
+ * Bump it only when the Worker changes; the plugin has its own version in plugin.json.
+ * `doctor` warns when a deployed Worker reports a different one.
+ */
 export const SERVICE_VERSION = "0.2.0";
 export const DEFAULT_LEASE_SECONDS = 300;
 

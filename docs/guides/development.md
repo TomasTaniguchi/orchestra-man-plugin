@@ -70,6 +70,12 @@ Helpers:
 
 Nunca edites una migración ya publicada. Agregá `migrations/0002_<nombre>.sql`: wrangler la aplica a D1 (`npm run worker:migrate:remote`) y el modo local la aplica solo al abrir la base.
 
+### Agregar un chequeo al diagnóstico
+
+1. Sumá un `Check` en `diagnose` (`src/plugin/doctor.ts`) con `status`, `detail` y, si no es `ok`, un `fix` accionable.
+2. Agregá el caso en `src/plugin/doctor.test.ts`. Si cambia la salida, `npm run test:update` y revisá el snapshot.
+3. Si la guía de `/orchestra-man:help` tiene que mencionarlo, editá `plugin/skills/help/SKILL.md`.
+
 ### Agregar una fase al grafo
 
 1. `Phase` y, si hace falta, un nuevo `kind` en `TaskInput` (`src/orchestration/state.ts`).

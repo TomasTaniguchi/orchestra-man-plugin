@@ -24,6 +24,35 @@ Agente acme/api#laptop (local) · backend d1 · memorias sincronizadas: 3.
 - [investigate-request] de acme/web · tarea task_… · id msg_…: Tarea …: Mostrar el estado de pago en el checkout…
 ```
 
+## Ayuda en cualquier momento
+
+```
+/orchestra-man:help            # diagnóstico + guía con ejemplos
+/orchestra-man:help tareas     # solo un tema: memoria, repos, tareas, mensajes, configuracion
+```
+
+El diagnóstico se ve así:
+
+```
+# orchestra-man · diagnóstico
+
+✓ Configuración: modo d1 · https://orchestra-man.tomas.workers.dev
+✓ Backend: responde (versión 0.2.0)
+✓ Agente: acme/api#laptop (local) · registrado
+✓ Memoria de este repo: 14 compartidas, 2 personales, 1 fijada, 6 sesiones · 3 cambios sin publicar (se publican en la próxima sincronización, o ya con orchestra_sync) · último cambio 2026-11-01T14:02:11.000Z
+
+## Otros repositorios
+- acme/billing: offline · cs-billing (codespace) · último checkpoint 2026-11-01T09:40:00.000Z en main@4f2a9c1
+- acme/web: online · laptop (local) · último checkpoint 2026-11-01T13:58:00.000Z en feat/cart@91be0d2
+
+## Bandeja: 1 sin leer (orchestra_inbox para verlos)
+
+## Estado
+Todo en orden.
+```
+
+Si algo falla, la sección "Estado" dice qué hacer, por ejemplo "El token fue rechazado: emití uno nuevo…" o "Actualizá el Worker…".
+
 ## 1. Memoria de tu repo
 
 Claude guarda solo lo que vale la pena (skill `memory`): decisiones, causas raíz, contratos. También podés pedirlo:

@@ -5,7 +5,8 @@ import { advanceTask, getTaskState, type OrchestratorDeps, startTask } from "../
 import { ApprovalDecision, Edit, type TaskInput } from "../orchestration/state";
 import { SCOPES } from "../memory/store";
 import { suggestTopicKey } from "../memory/text";
-import { isOnline, memoryContext, runCheckpoint } from "./commands";
+import { memoryContext, runCheckpoint } from "./commands";
+import { diagnose, formatReport } from "./doctor";
 import type { Runtime } from "./runtime";
 
 type Shape = z.ZodRawShape;
@@ -115,18 +116,10 @@ const MEMORY_TOOLS = {
 export const TOOLS = {
   ...MEMORY_TOOLS,
   orchestra_status: tool({
-    description: "Shows this agent, the backend mode and which repositories have agents online or offline.",
+    description:
+      "Diagnosis of orchestra-man on this machine: configuration, backend health and version, this agent, this repo's memory (and unsynced changes), other repositories online or offline, unread inbox, and what to fix. Read-only.",
     input: {},
-    run: async (rt) => {
-      const agents = await rt.remote.listAgents();
-      const now = rt.clock.now();
-      return {
-        agent: rt.identity.agent,
-        mode: rt.config.mode,
-        backend: await rt.remote.health(),
-        agents: agents.map((a) => ({ ...a, online: isOnline(a, now, rt.config.agentStaleMinutes) })),
-      };
-    },
+    run: async (rt) => formatReport(await diagnose(rt)),
   }),
   orchestra_recall: tool({
     description:

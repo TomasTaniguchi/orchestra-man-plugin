@@ -41,6 +41,8 @@ Punto de entrada para agentes de IA que trabajan **sobre este repositorio**. Los
 | `scripts/setup-worker.sh` | Despliegue interactivo del Worker (bash 3.2+, Git Bash, WSL). La lógica portable vive en `scripts/setup-worker-lib.mjs` |
 | `worker/wrangler.jsonc` | Plantilla versionada. Cada persona usa su copia `worker/wrangler.local.jsonc` (ignorada) |
 | `plugin/` | El plugin instalable (manifest, hooks, monitor, skills y `dist/`) |
+| `plugin/skills/` | `memory` (protocolo de memoria), `orchestra` (multi-agente), `configure` y `help` (solo los invoca el usuario). La guía con ejemplos vive en `help/SKILL.md` |
+| `src/plugin/doctor.ts` | El diagnóstico de `/orchestra-man:help`, `cli.mjs doctor` y `orchestra_status`: una sola implementación |
 | `docs/api/openapi.yaml` | Contrato legible. `test/e2e/contract.test.ts` lo mantiene sincronizado con las rutas |
 
 ## Reglas

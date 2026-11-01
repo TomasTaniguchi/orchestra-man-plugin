@@ -7,6 +7,7 @@
 - [AGENTS.md](AGENTS.md): rules, code map and commands for agents working on this repo
 - [README.md](README.md): what it solves, install, Worker setup, usage
 - [docs/README.md](docs/README.md): documentation index
+- [plugin/skills/help/SKILL.md](plugin/skills/help/SKILL.md): `/orchestra-man:help`, live diagnosis and the user guide with examples
 
 ## Architecture
 

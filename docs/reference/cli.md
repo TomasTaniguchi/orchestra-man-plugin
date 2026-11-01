@@ -15,6 +15,7 @@ En una skill, la ruta es `${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs`.
 | `session-end` | hook `SessionEnd` | Cierra la sesión, última sincronización y checkpoint, sin salida |
 | `subagent-stop` | hook `SubagentStop` | Guarda los ítems "Key Learnings" de la última respuesta del subagente (captura pasiva) |
 | `watch` | monitor `orchestra-watch` | Bucle: cada `inboxPollSec` imprime una línea por mensaje nuevo; cada `checkpointIntervalSec` sincroniza |
+| `doctor` | `/orchestra-man:help`, a mano | Diagnóstico de solo lectura: configuración, backend y su versión, agente, memoria y cambios sin publicar, otros repos y bandeja, con qué hacer ante cada problema. Sale con código 1 si hay errores. Funciona aunque falte la configuración |
 | `sync` | a mano | Sincroniza y checkpointea ahora; imprime el resultado en JSON |
 | `status` | a mano | Agente, destino de sincronización y configuración efectiva (secretos acortados) |
 | `configure` | skill `configure` | Edita el archivo de configuración |
