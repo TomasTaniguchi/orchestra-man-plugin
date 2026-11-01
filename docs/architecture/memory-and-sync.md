@@ -1,65 +1,65 @@
-# Memoria y sincronización
+# Memory and sync
 
-## Memoria propia, local primero
+## Built-in memory, local first
 
-Cada máquina guarda la memoria de su repo en el SQLite local del plugin (`localDbPath`). No hace falta instalar nada más. El diseño reproduce el de [Engram](https://github.com/Gentleman-Programming/engram), que es la referencia de la que partimos (ver [ADR 0008](../adr/0008-memoria-propia-local-primero.md)):
+Each machine stores its repo's memory in the plugin's local SQLite (`localDbPath`). Nothing else needs to be installed. The design reproduces [Engram](https://github.com/Gentleman-Programming/engram), the reference we started from (see [ADR 0008](../adr/0008-built-in-local-first-memory.md)):
 
-| Comportamiento | Cómo funciona | Código |
+| Behavior | How it works | Code |
 | --- | --- | --- |
-| Guardar | `orchestra_save` con `type`, `title`, `content`, `scope`, `topicKey`. Se adjunta a la sesión abierta | `MemoryStore.save` |
-| Upsert por tema | Mismo `topicKey` + proyecto + alcance → se actualiza en el lugar, `revisionCount` +1, y el contenido anterior queda en `mem_observation_versions` | `save`, `update` |
-| Dedupe | Mismo contenido normalizado (sin mayúsculas ni espacios extra), título, tipo, proyecto y alcance en menos de 15 minutos → solo `duplicateCount` +1 | `save` |
-| `<private>` | Se reemplaza por `[REDACTED]` antes de guardar, también localmente | `stripPrivate` |
-| Borrar | Soft por defecto (se oculta). Hard borra título, contenido e historial y deja una lápida para propagar la baja | `delete` |
-| Búsqueda | FTS5 con bm25, filtros por tipo y alcance | `search` |
-| Contexto | Sesiones recientes, fijadas y recientes, limitado a 16 KB | `formatMemoryContext` |
-| Timeline | Memorias guardadas antes y después en la misma sesión | `timeline` |
-| Sugerir tema | Familia según tipo o palabras clave + segmento normalizado del título (algoritmo de Engram) | `suggestTopicKey` |
-| Sesiones | Abiertas por el hook de inicio con el `session_id` de Claude Code y cerradas al terminar. El resumen va a la sesión y como memoria `session_summary` | `startSession`, `saveSessionSummary` |
-| Captura pasiva | Ítems de una sección `## Key Learnings` / `## Aprendizajes` en la salida de un subagente, guardados una sola vez | `capturePassive`, hook `SubagentStop` |
-| Recuperación tras compactación | El hook `SessionStart` con matcher `compact` pide guardar el resumen y reinyecta la memoria | `postCompact` |
+| Save | `orchestra_save` with `type`, `title`, `content`, `scope`, `topicKey`. Attached to the open session | `MemoryStore.save` |
+| Upsert by topic | Same `topicKey` + project + scope → updated in place, `revisionCount` +1, and the previous content is kept in `mem_observation_versions` | `save`, `update` |
+| Dedupe | Same normalized content (case-insensitive, no extra whitespace), title, type, project and scope within 15 minutes → only `duplicateCount` +1 | `save` |
+| `<private>` | Replaced with `[REDACTED]` before saving, locally too | `stripPrivate` |
+| Delete | Soft by default (hidden). Hard deletes title, content and history and leaves a tombstone to propagate the withdrawal | `delete` |
+| Search | FTS5 with bm25, filters by type and scope | `search` |
+| Context | Recent sessions, pinned and recent memories, capped at 16 KB | `formatMemoryContext` |
+| Timeline | Memories saved before and after in the same session | `timeline` |
+| Suggest topic | Family by type or keywords + normalized title segment (Engram's algorithm) | `suggestTopicKey` |
+| Sessions | Opened by the start hook with the Claude Code `session_id` and closed at the end. The summary goes to the session and as a `session_summary` memory | `startSession`, `saveSessionSummary` |
+| Passive capture | Items in a `## Key Learnings` / `## Aprendizajes` section of a subagent's output, saved only once | `capturePassive`, `SubagentStop` hook |
+| Recovery after compaction | The `SessionStart` hook with the `compact` matcher asks to save the summary and re-injects memory | `postCompact` |
 
-El protocolo de cuándo y cómo guardar está en la skill `plugin/skills/memory/SKILL.md`.
+The protocol for when and how to save lives in the `plugin/skills/memory/SKILL.md` skill.
 
-Toda operación por id está acotada al repo: no se puede leer ni modificar la memoria de otro proyecto con un id.
+Every operation by id is scoped to the repo: you cannot read or modify another project's memory with an id.
 
-### Alcances
+### Scopes
 
-| Alcance | Dónde vive | Se comparte |
+| Scope | Where it lives | Shared |
 | --- | --- | --- |
-| `project` (por defecto) | Local | Sí, enmascarada, en la siguiente sincronización |
-| `personal` | Local | **Nunca.** Si una memoria pasa de `project` a `personal`, se retira del backend |
+| `project` (default) | Local | Yes, masked, on the next sync |
+| `personal` | Local | **Never.** If a memory changes from `project` to `personal`, it is withdrawn from the backend |
 
-## Sincronización incremental
+## Incremental sync
 
 ```
-orchestra_save ──► mem_observations (local, sin enmascarar, change_seq = max+1)
+orchestra_save ──► mem_observations (local, unmasked, change_seq = max+1)
                           │
-        session-start · monitor cada 5 min · session-end · orchestra_sync
+        session-start · monitor every 5 min · session-end · orchestra_sync
                           ▼
-     changesSince(cursor) → toChange → maskedRemote → PUT /v1/memories (lotes de 50)
+     changesSince(cursor) → toChange → maskedRemote → PUT /v1/memories (batches of 50)
                           ▼
-                 avanzar cursor tras cada lote confirmado
+                 advance cursor after each confirmed batch
 ```
 
-- Cada cambio (alta, edición, borrado o cambio de alcance) recibe un `change_seq` monótono dentro de su transacción. El cursor de cada backend guarda el último `change_seq` confirmado. Así **ningún cambio se saltea**, aunque dos tengan el mismo timestamp o el reloj retroceda.
-- El cursor avanza solo después de que el backend confirma el lote. Si falla la red, se reintenta en la próxima sincronización: no se pierde nada.
-- Las memorias borradas o `personal` viajan como **baja**: solo `sourceId` y `updatedAt`, sin título ni contenido.
-- Cada lote es **un** `batch()` de D1. Un upsert nunca reemplaza una copia más nueva, y una baja nunca borra una copia más nueva.
-- Una llamada procesa hasta 10 ventanas de 200 cambios. Si queda más, lo indica (`pending`) y sigue en la siguiente.
-- Hay un cursor por backend (`syncTarget`), así que cambiar de Worker o pasar de local a D1 vuelve a subir todo una vez.
+- Each change (create, edit, delete or scope change) gets a monotonic `change_seq` inside its transaction. Each backend's cursor stores the last confirmed `change_seq`. So **no change is skipped**, even if two share the same timestamp or the clock goes backwards.
+- The cursor advances only after the backend confirms the batch. If the network fails, the next sync retries: nothing is lost.
+- Deleted or `personal` memories travel as a **withdrawal**: only `sourceId` and `updatedAt`, with no title or content.
+- Each batch is **one** D1 `batch()`. An upsert never replaces a newer copy, and a withdrawal never deletes a newer copy.
+- One call processes up to 10 windows of 200 changes. If more remain, it says so (`pending`) and continues on the next call.
+- There is one cursor per backend (`syncTarget`), so switching Workers or moving from local to D1 uploads everything again once.
 
-Lo guardado queda disponible para los otros repos después de la próxima sincronización: hasta `checkpointIntervalSec` (5 minutos por defecto), o al instante con `orchestra_sync`.
+Saved data becomes available to the other repos after the next sync: within `checkpointIntervalSec` (5 minutes by default), or immediately with `orchestra_sync`.
 
 ## Checkpoints
 
-Un checkpoint es una foto de dónde quedó un repo: rama, commit, archivos sin commitear (hasta 50) y los títulos de las memorias `project` recientes. Se genera **en la máquina donde corre el código**, nunca desde el Worker, porque un Worker no puede leer un codespace apagado. Sirve para que otro agente sepa **qué tan vieja** es la información de un repo apagado.
+A checkpoint is a snapshot of where a repo left off: branch, commit, uncommitted files (up to 50) and the titles of recent `project` memories. It is generated **on the machine where the code runs**, never from the Worker, because a Worker cannot read a stopped codespace. It lets another agent know **how old** the information about a stopped repo is.
 
-## Dos búsquedas
+## Two searches
 
-| Herramienta | Qué busca | Ventajas |
+| Tool | What it searches | Advantages |
 | --- | --- | --- |
-| `orchestra_search` | La memoria **de este repo**, local | Al instante, sin enmascarar, incluye `personal` |
-| `orchestra_recall` | La memoria compartida **de todos los repos** | Funciona con codespaces apagados. Datos enmascarados y con la antigüedad de la última sincronización |
+| `orchestra_search` | **This repo's** memory, local | Instant, unmasked, includes `personal` |
+| `orchestra_recall` | The shared memory **of all repos** | Works with stopped codespaces. Masked data, as old as the last sync |
 
-Ambas usan FTS5: cada palabra de la consulta se convierte en un término con prefijo entre comillas, unido con OR, y bm25 ordena primero los mejores resultados. Las coincidencias se marcan con `[ ]`.
+Both use FTS5: each query word becomes a quoted prefix term, joined with OR, and bm25 ranks the best results first. Matches are marked with `[ ]`.

@@ -1,78 +1,78 @@
-# Arquitectura
+# Architecture
 
-## Componentes
+## Components
 
 ```mermaid
 flowchart LR
-  subgraph M1["Máquina (codespace o clon local)"]
+  subgraph M1["Machine (codespace or local clone)"]
     CC[Claude Code] -->|MCP stdio| MCP[orchestra-man MCP server]
     CC -->|SessionStart / SessionEnd| HOOK[CLI: hooks]
     CC -->|monitor| WATCH[CLI: watch]
     MCP --> RT[Runtime]
     HOOK --> RT
     WATCH --> RT
-    RT --> MEM[(Memoria local\nSQLite mem_*)]
+    RT --> MEM[(Local memory\nSQLite mem_*)]
     RT --> MASK[maskedRemote]
   end
-  MASK -->|HTTPS + token| WORKER[Worker de Cloudflare]
+  MASK -->|HTTPS + token| WORKER[Cloudflare Worker]
   WORKER --> D1[(D1)]
-  MASK -.->|modo local| SQLITE[(SQLite local)]
+  MASK -.->|local mode| SQLITE[(Local SQLite)]
 ```
 
-| Componente | Código | Responsabilidad |
+| Component | Code | Responsibility |
 | --- | --- | --- |
-| Contrato | `src/core/contract.ts`, `src/core/routes.ts` | Esquemas zod y rutas HTTP. Fuente única de verdad |
-| Servicio | `src/core/service.ts` | Reglas de negocio: validación, leases, versiones optimistas, lotes, tokens, mantenimiento |
-| Repositorios | `src/core/repositories/*` | SQL atómico, una tabla por archivo |
-| Worker | `src/worker/*` | HTTP, autenticación, wake de codespaces, cron de mantenimiento |
-| Enmascarado | `src/masking/*` | Reglas y decorador `maskedRemote` |
-| Orquestación | `src/orchestration/*` | Grafo de LangGraph y runner con lease |
-| Memoria | `src/memory/*` | Memoria local de cada repo: upsert por tema, versiones, dedupe, FTS5, sesiones, contexto |
-| Runtime del plugin | `src/plugin/*` | Config, identidad, sync incremental, casos de uso, MCP y CLI |
+| Contract | `src/core/contract.ts`, `src/core/routes.ts` | zod schemas and HTTP routes. Single source of truth |
+| Service | `src/core/service.ts` | Business rules: validation, leases, optimistic versions, batches, tokens, maintenance |
+| Repositories | `src/core/repositories/*` | Atomic SQL, one table per file |
+| Worker | `src/worker/*` | HTTP, authentication, codespace wake, maintenance cron |
+| Masking | `src/masking/*` | Rules and the `maskedRemote` decorator |
+| Orchestration | `src/orchestration/*` | LangGraph graph and runner with lease |
+| Memory | `src/memory/*` | Per-repo local memory: upsert by topic, versions, dedupe, FTS5, sessions, context |
+| Plugin runtime | `src/plugin/*` | Config, identity, incremental sync, use cases, MCP and CLI |
 
-## Puertos y adaptadores
+## Ports and adapters
 
-Dos interfaces pequeñas desacoplan todo:
+Two small interfaces decouple everything:
 
-**`SqlDatabase`** (`src/core/db.ts`) es el subconjunto de la API de D1 que usa el código de datos: `prepare().bind().all()/first()/run()` y `batch()`.
+**`SqlDatabase`** (`src/core/db.ts`) is the subset of the D1 API that the data code uses: `prepare().bind().all()/first()/run()` and `batch()`.
 
-- En el Worker la implementa el binding `env.DB` de D1, tal cual.
-- En modo local y en los tests la implementa `openNodeSqlite` (`src/core/node-sqlite.ts`) sobre `node:sqlite`.
+- In the Worker, the D1 `env.DB` binding implements it as is.
+- In local mode and in tests, `openNodeSqlite` (`src/core/node-sqlite.ts`) implements it on top of `node:sqlite`.
 
-Así **todo el SQL existe una sola vez** y se ejecuta igual en D1 y en local. El esquema (`migrations/`) también es uno solo: wrangler lo aplica a D1 y `applyMigrations` al SQLite local.
+This way **all SQL exists only once** and runs the same on D1 and locally. There is also a single schema (`migrations/`): wrangler applies it to D1 and `applyMigrations` applies it to the local SQLite.
 
-**`Remote`** (`src/core/remote.ts`) es lo que el plugin necesita del backend.
+**`Remote`** (`src/core/remote.ts`) is what the plugin needs from the backend.
 
-- `OrchestraService` lo implementa directamente (modo local).
-- `httpRemote` lo implementa contra tu Worker (modo D1). El Worker, a su vez, delega en `OrchestraService`.
-- `maskedRemote` lo decora: enmascara todo texto libre antes de delegar.
+- `OrchestraService` implements it directly (local mode).
+- `httpRemote` implements it against your Worker (D1 mode). The Worker, in turn, delegates to `OrchestraService`.
+- `maskedRemote` decorates it: it masks all free text before delegating.
 
-`createRuntime` (`src/plugin/runtime.ts`) es la raíz de composición: el único lugar que elige implementaciones concretas, y siempre envuelve el backend con `maskedRemote`.
+`createRuntime` (`src/plugin/runtime.ts`) is the composition root: the only place that picks concrete implementations. It always wraps the backend with `maskedRemote`.
 
 ```
 plugin code ──► Remote (maskedRemote) ──► httpRemote ──HTTP──► Worker ──► OrchestraService ──► SqlDatabase = D1
                                       └─► OrchestraService ─────────────────────────────────► SqlDatabase = node:sqlite
 ```
 
-Los tests end-to-end corren el mismo escenario por los dos caminos y exigen resultados idénticos.
+The end-to-end tests run the same scenario through both paths and require identical results.
 
-## Principios aplicados
+## Applied principles
 
-- **Responsabilidad única**: repositorios solo hablan SQL; el servicio solo aplica reglas; el Worker solo traduce HTTP; los nodos del grafo solo deciden el siguiente paso.
-- **Abierto/cerrado**: nuevas reglas de enmascarado, herramientas MCP o rutas se agregan en tablas (`DEFAULT_RULES`, `TOOLS`, `ROUTES`/`HANDLERS`) sin tocar el resto.
-- **Sustitución**: cualquier `Remote` o `SqlDatabase` sirve; los tests lo demuestran con ambos backends.
-- **Inversión de dependencias**: reloj, ids, `fetch`, `exec` (git) y la base local se inyectan. Ningún módulo llama `Date.now()` ni crea singletons, salvo los puntos de entrada en `src/plugin/bin/`.
+- **Single responsibility**: repositories only speak SQL; the service only applies rules; the Worker only translates HTTP; graph nodes only decide the next step.
+- **Open/closed**: new masking rules, MCP tools or routes are added to tables (`DEFAULT_RULES`, `TOOLS`, `ROUTES`/`HANDLERS`) without touching anything else.
+- **Substitution**: any `Remote` or `SqlDatabase` works; the tests prove it with both backends.
+- **Dependency inversion**: clock, ids, `fetch`, `exec` (git) and the local database are injected. No module calls `Date.now()` or creates singletons, except the entry points in `src/plugin/bin/`.
 
-## Flujos principales
+## Main flows
 
-| Momento | Qué pasa | Código |
+| When | What happens | Code |
 | --- | --- | --- |
-| Abrir Claude Code | Abre la sesión, sincroniza la memoria, guarda un checkpoint e inyecta la memoria del repo y el contexto entre repos | `sessionStart` en `src/plugin/commands.ts` |
-| Compactación | Pide guardar el resumen compactado y reinyecta la memoria | `postCompact` |
-| Fin de un subagente | Guarda sus "Key Learnings" | `subagentStop` |
-| Durante la sesión | El monitor consulta la bandeja cada `inboxPollSec` y avisa con una línea por mensaje nuevo; cada `checkpointIntervalSec` repite la sincronización | `watch` |
-| Herramientas MCP | Consultas, mensajes y pasos de tareas | `src/plugin/mcp.ts` |
-| Cerrar Claude Code | Última sincronización y checkpoint | `runCheckpoint` |
-| Cron del Worker (diario) | Borra mensajes y checkpoints vencidos y libera leases expirados | `OrchestraService.maintenance` |
+| Opening Claude Code | Opens the session, syncs memory, saves a checkpoint, and injects the repo memory and the cross-repo context | `sessionStart` in `src/plugin/commands.ts` |
+| Compaction | Asks to save the compacted summary and re-injects memory | `postCompact` |
+| Subagent finishes | Saves its "Key Learnings" | `subagentStop` |
+| During the session | The monitor checks the inbox every `inboxPollSec` and prints one line per new message; every `checkpointIntervalSec` it repeats the sync | `watch` |
+| MCP tools | Queries, messages and task steps | `src/plugin/mcp.ts` |
+| Closing Claude Code | Final sync and checkpoint | `runCheckpoint` |
+| Worker cron (daily) | Deletes expired messages and checkpoints and releases expired leases | `OrchestraService.maintenance` |
 
-Ver también [orchestration.md](orchestration.md) y [memory-and-sync.md](memory-and-sync.md).
+See also [orchestration.md](orchestration.md) and [memory-and-sync.md](memory-and-sync.md).

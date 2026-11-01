@@ -1,42 +1,42 @@
-# Documentación de orchestra-man
+# orchestra-man documentation
 
-Índice para personas y agentes. Cada documento cubre un tema; empezá por el que corresponda a lo que querés hacer.
+Index for people and agents. Each document covers one topic; start with the one that matches what you want to do.
 
-## Quiero usarlo
+## I want to use it
 
-| Documento | Para qué |
+| Document | Purpose |
 | --- | --- |
-| [guides/install-plugin.md](guides/install-plugin.md) | Instalar y configurar el plugin en clones locales y codespaces |
-| [guides/deploy-worker.md](guides/deploy-worker.md) | Desplegar tu Worker de Cloudflare con D1, paso a paso |
-| [guides/usage.md](guides/usage.md) | Escenarios de uso: `/orchestra-man:help`, memoria, consultas, tareas entre repos, responder pedidos |
-| [troubleshooting.md](troubleshooting.md) | Problemas frecuentes y cómo resolverlos |
+| [guides/install-plugin.md](guides/install-plugin.md) | Install and configure the plugin in local clones and codespaces |
+| [guides/deploy-worker.md](guides/deploy-worker.md) | Deploy your Cloudflare Worker with D1, step by step |
+| [guides/usage.md](guides/usage.md) | Usage scenarios: `/orchestra-man:help`, memory, queries, cross-repo tasks, answering requests |
+| [troubleshooting.md](troubleshooting.md) | Common problems and how to fix them |
 
-## Quiero entenderlo
+## I want to understand it
 
-| Documento | Para qué |
+| Document | Purpose |
 | --- | --- |
-| [architecture/overview.md](architecture/overview.md) | Componentes, puertos y adaptadores, flujo de datos |
-| [architecture/orchestration.md](architecture/orchestration.md) | El grafo de LangGraph, fases, leases y rotación del orquestador |
-| [architecture/memory-and-sync.md](architecture/memory-and-sync.md) | La memoria local de cada repo, la sincronización incremental y los checkpoints |
-| [security.md](security.md) | Modelo de amenazas, enmascarado, tokens |
-| [adr/](adr/) | Decisiones de arquitectura y sus razones |
-| [glossary.md](glossary.md) | Términos del proyecto |
+| [architecture/overview.md](architecture/overview.md) | Components, ports and adapters, data flow |
+| [architecture/orchestration.md](architecture/orchestration.md) | The LangGraph graph, phases, leases and orchestrator rotation |
+| [architecture/memory-and-sync.md](architecture/memory-and-sync.md) | Each repo's local memory, incremental sync and checkpoints |
+| [security.md](security.md) | Threat model, masking, tokens |
+| [adr/](adr/) | Architecture decisions and their rationale |
+| [glossary.md](glossary.md) | Project terms |
 
-## Referencia
+## Reference
 
-| Documento | Contenido |
+| Document | Contents |
 | --- | --- |
-| [api/openapi.yaml](api/openapi.yaml) | Contrato HTTP del Worker |
-| [reference/mcp-tools.md](reference/mcp-tools.md) | Las 12 herramientas MCP |
-| [reference/cli.md](reference/cli.md) | Comandos de la CLI (hooks, monitor, configure) |
-| [reference/configuration.md](reference/configuration.md) | Todas las claves, variables de entorno y precedencia |
-| [reference/data-model.md](reference/data-model.md) | Tablas, índices y reglas de concurrencia |
-| [reference/masking.md](reference/masking.md) | Reglas de enmascarado y cómo extenderlas |
-| [reference/d1-limits.md](reference/d1-limits.md) | Límites de D1 verificados y cómo los respeta el plugin |
+| [api/openapi.yaml](api/openapi.yaml) | Worker HTTP contract |
+| [reference/mcp-tools.md](reference/mcp-tools.md) | The 12 MCP tools |
+| [reference/cli.md](reference/cli.md) | CLI commands (hooks, monitor, configure) |
+| [reference/configuration.md](reference/configuration.md) | All keys, environment variables and precedence |
+| [reference/data-model.md](reference/data-model.md) | Tables, indexes and concurrency rules |
+| [reference/masking.md](reference/masking.md) | Masking rules and how to extend them |
+| [reference/d1-limits.md](reference/d1-limits.md) | Verified D1 limits and how the plugin respects them |
 
-## Quiero modificarlo
+## I want to modify it
 
-| Documento | Para qué |
+| Document | Purpose |
 | --- | --- |
-| [../AGENTS.md](../AGENTS.md) | Reglas del repo, mapa de código y comandos |
-| [guides/development.md](guides/development.md) | Tests, snapshots, build y recetas para extenderlo |
+| [../AGENTS.md](../AGENTS.md) | Repo rules, code map and commands |
+| [guides/development.md](guides/development.md) | Tests, snapshots, build and recipes to extend it |

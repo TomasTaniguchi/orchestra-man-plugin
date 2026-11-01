@@ -1,18 +1,18 @@
-# Desplegar tu Worker con D1
+# Deploy your Worker with D1
 
-Cada persona despliega **su propio** Worker. Es de uso personal: la memoria, los mensajes y las tareas quedan en tu cuenta de Cloudflare, y vos decidís qué máquinas tienen token.
+Each person deploys **their own** Worker. It is for personal use: memory, messages and tasks live in your Cloudflare account, and you decide which machines get a token.
 
-Alcanza con el plan Free para empezar (ver [límites](../reference/d1-limits.md)).
+The Free plan is enough to start (see [limits](../reference/d1-limits.md)).
 
-## Requisitos
+## Requirements
 
-- Cuenta de Cloudflare.
-- Node.js 22.13 o superior.
+- A Cloudflare account.
+- Node.js 22.13 or later.
 - Bash:
-  - **macOS**: el que viene con el sistema (3.2) alcanza.
-  - **Linux**: el del sistema.
-  - **Windows**: **Git Bash** (viene con [Git for Windows](https://git-scm.com/download/win)) o **WSL**. PowerShell y CMD no están soportados.
-- Este repositorio clonado:
+  - **macOS**: the system one (3.2) is enough.
+  - **Linux**: the system one.
+  - **Windows**: **Git Bash** (ships with [Git for Windows](https://git-scm.com/download/win)) or **WSL**. PowerShell and CMD are not supported.
+- This repository, cloned:
 
 ```bash
 git clone https://github.com/TomasTaniguchi/orchestra-man-plugin
@@ -20,133 +20,133 @@ cd orchestra-man-plugin
 npm ci
 ```
 
-## Opción rápida: script interactivo (recomendado)
+## Quick option: interactive script (recommended)
 
 ```bash
 npm run worker:setup
-# o directamente: bash scripts/setup-worker.sh
+# or directly: bash scripts/setup-worker.sh
 ```
 
-El script te guía en 8 pasos y pregunta solo lo necesario. Cada pregunta trae un valor por defecto: Enter lo acepta.
+The script walks you through 8 steps and asks only what it needs. Every question has a default value: press Enter to accept it.
 
-| Paso | Qué hace | Qué te pregunta |
+| Step | What it does | What it asks |
 | --- | --- | --- |
-| 1. Requisitos | Verifica Node 22.13+ y corre `npm ci` si faltan dependencias | — |
-| 2. Cuenta | Si no hay sesión de Cloudflare, abre el navegador (`wrangler login`) | — |
-| 3. Nombres | Valida los nombres (minúsculas, números y guiones) | Nombre del Worker (`orchestra-man`) y de la base D1 (el mismo) |
-| 4. Base D1 | La crea, o reutiliza una existente con ese nombre. Escribe tu configuración personal en `worker/wrangler.local.jsonc` (ignorada por git) | Si ya existe: ¿la reutilizo? |
-| 5. Esquema | Aplica las migraciones a D1 | wrangler puede pedir confirmación: respondé que sí |
-| 6. Despliegue | Despliega y detecta la URL `*.workers.dev` | La URL, solo si no la detecta |
-| 7. Secretos | Carga `ADMIN_TOKEN` y, opcionalmente, `GITHUB_TOKEN` | ¿Genero el `ADMIN_TOKEN`? (si no, lo tipeás oculto) y el `GITHUB_TOKEN` (oculto, Enter para omitir) |
-| 8. Esta máquina | Espera a que el Worker responda, emite un token para esta máquina y configura el plugin | Nombre de la máquina (el hostname) y ¿configuro el plugin? |
+| 1. Requirements | Checks for Node 22.13+ and runs `npm ci` if dependencies are missing | — |
+| 2. Account | If there is no Cloudflare session, opens the browser (`wrangler login`) | — |
+| 3. Names | Validates the names (lowercase letters, numbers and hyphens) | Worker name (`orchestra-man`) and D1 database name (the same) |
+| 4. D1 database | Creates it, or reuses an existing one with that name. Writes your personal config to `worker/wrangler.local.jsonc` (ignored by git) | If it already exists: reuse it? |
+| 5. Schema | Applies the migrations to D1 | wrangler may ask for confirmation: answer yes |
+| 6. Deploy | Deploys and detects the `*.workers.dev` URL | The URL, only if it cannot detect it |
+| 7. Secrets | Sets `ADMIN_TOKEN` and, optionally, `GITHUB_TOKEN` | Generate the `ADMIN_TOKEN`? (if not, you type it hidden) and the `GITHUB_TOKEN` (hidden, Enter to skip) |
+| 8. This machine | Waits for the Worker to respond, issues a token for this machine and configures the plugin | Machine name (the hostname) and configure the plugin? |
 
-Al final muestra la URL y, **una sola vez**:
-- el `ADMIN_TOKEN`, si lo generó: guardalo en tu gestor de contraseñas;
-- el token de la máquina, si elegiste no configurar el plugin acá.
+At the end it shows the URL and, **only once**:
+- the `ADMIN_TOKEN`, if it generated one: store it in your password manager;
+- the machine token, if you chose not to configure the plugin here.
 
-Los secretos que tipeás nunca se muestran ni quedan en el historial del shell.
+Secrets you type are never shown and never end up in your shell history.
 
-### Volver a correrlo
+### Running it again
 
-Es seguro repetirlo, por ejemplo después de un error:
-- la base se reutiliza;
-- las migraciones solo aplican lo nuevo;
-- el despliegue se actualiza.
+It is safe to run it again, for example after an error:
+- the database is reused;
+- migrations apply only what is new;
+- the deployment is updated.
 
-Si elegís **generar** el `ADMIN_TOKEN`, el anterior deja de servir. Los tokens de máquina ya emitidos siguen funcionando, porque el Worker los guarda en D1.
+If you choose to **generate** the `ADMIN_TOKEN`, the previous one stops working. Machine tokens already issued keep working, because the Worker stores them in D1.
 
-### Sin preguntas (CI o reinstalación)
+### Non-interactive (CI or reinstall)
 
-`--yes` toma todos los valores por defecto. Cualquier respuesta también se puede dar por variable de entorno:
+`--yes` takes every default value. You can also give any answer through an environment variable:
 
 ```bash
 OM_WORKER_NAME=orchestra-man OM_MACHINE_NAME=laptop-tomas bash scripts/setup-worker.sh --yes
 ```
 
-| Variable | Respuesta |
+| Variable | Answer |
 | --- | --- |
-| `OM_WORKER_NAME`, `OM_DATABASE_NAME` | Nombres |
-| `OM_REUSE_DATABASE` | `s` o `n` |
-| `OM_GENERATE_ADMIN_TOKEN` | `s` o `n` |
-| `OM_ADMIN_TOKEN`, `OM_GITHUB_TOKEN` | Secretos (evitá dejarlos en el historial del shell) |
-| `OM_WORKER_URL` | URL, si no se detecta |
-| `OM_MACHINE_NAME` | Nombre del token de esta máquina |
-| `OM_CONFIGURE_PLUGIN` | `s` o `n` |
-| `OM_LOCAL_CONFIG` | Ruta de la configuración personal (por defecto `worker/wrangler.local.jsonc`) |
+| `OM_WORKER_NAME`, `OM_DATABASE_NAME` | Names |
+| `OM_REUSE_DATABASE` | `s` or `n` |
+| `OM_GENERATE_ADMIN_TOKEN` | `s` or `n` |
+| `OM_ADMIN_TOKEN`, `OM_GITHUB_TOKEN` | Secrets (avoid leaving them in your shell history) |
+| `OM_WORKER_URL` | URL, if it is not detected |
+| `OM_MACHINE_NAME` | Name of this machine's token |
+| `OM_CONFIGURE_PLUGIN` | `s` or `n` |
+| `OM_LOCAL_CONFIG` | Path to the personal config (default `worker/wrangler.local.jsonc`) |
 
-`bash scripts/setup-worker.sh --help` muestra el resumen.
+`bash scripts/setup-worker.sh --help` shows the summary.
 
-## Opción manual
+## Manual option
 
-Si preferís hacerlo a mano, o el script falla en tu entorno, estos son los mismos pasos.
+If you prefer to do it by hand, or the script fails in your environment, these are the same steps.
 
-### 1. Iniciar sesión y crear la base
+### 1. Log in and create the database
 
 ```bash
 npx wrangler login
 npx wrangler d1 create orchestra-man
 ```
 
-### 2. Configuración personal
+### 2. Personal config
 
-`worker/wrangler.jsonc` es la plantilla versionada; no pongas tu id ahí. Copiala a `worker/wrangler.local.jsonc`, que git ignora, y reemplazá `REPLACE_WITH_YOUR_DATABASE_ID` por el `database_id` que imprimió el paso anterior. Si usaste otros nombres, cambiá también `name` y `database_name`.
+`worker/wrangler.jsonc` is the versioned template; do not put your id there. Copy it to `worker/wrangler.local.jsonc`, which git ignores, and replace `REPLACE_WITH_YOUR_DATABASE_ID` with the `database_id` printed by the previous step. If you used other names, also change `name` and `database_name`.
 
 ```bash
 cp worker/wrangler.jsonc worker/wrangler.local.jsonc
 ```
 
-Todos los comandos siguientes usan `-c worker/wrangler.local.jsonc`, y los scripts `npm run worker:*` ya lo hacen.
+All the following commands use `-c worker/wrangler.local.jsonc`, and the `npm run worker:*` scripts already do that.
 
-### 3. Esquema
+### 3. Schema
 
 ```bash
 npm run worker:migrate:remote
 ```
 
-Aplica `migrations/0001_init.sql`: tablas, índices, la tabla FTS5 de búsqueda y sus triggers. Usa el binding `DB`, así que funciona con cualquier nombre de base.
+Applies `migrations/0001_init.sql`: tables, indexes, the FTS5 search table and its triggers. It uses the `DB` binding, so it works with any database name.
 
-### 4. Desplegar
+### 4. Deploy
 
 ```bash
 npm run worker:deploy
 ```
 
-Anotá la URL que imprime, por ejemplo `https://orchestra-man.<tu-subdominio>.workers.dev`. Se despliega antes de cargar los secretos porque `wrangler secret put` sobre un Worker que no existe pregunta si crearlo.
+Note the URL it prints, for example `https://orchestra-man.<your-subdomain>.workers.dev`. You deploy before setting the secrets because `wrangler secret put` on a Worker that does not exist asks whether to create it.
 
-### 5. Secretos
+### 5. Secrets
 
-El `ADMIN_TOKEN` solo sirve para emitir y revocar tokens de máquina. Generá uno largo (32 caracteres o más) y guardalo en tu gestor de contraseñas:
+The `ADMIN_TOKEN` is only used to issue and revoke machine tokens. Generate a long one (32 characters or more) and store it in your password manager:
 
 ```bash
 openssl rand -hex 32
 npx wrangler secret put ADMIN_TOKEN -c worker/wrangler.local.jsonc
 ```
 
-**Opcional**: para que `orchestra_wake` pueda encender un codespace apagado, cargá un **PAT clásico** de GitHub con scope `codespace`, del mismo usuario dueño de los codespaces. La API de GitHub no documenta qué permiso necesitan los tokens de grano fino para esta operación.
+**Optional**: to let `orchestra_wake` start a stopped codespace, set a GitHub **classic PAT** with the `codespace` scope, from the same user who owns the codespaces. The GitHub API does not document which permission fine-grained tokens need for this operation.
 
 ```bash
 npx wrangler secret put GITHUB_TOKEN -c worker/wrangler.local.jsonc
 ```
 
-Sin este secreto todo funciona igual, salvo `orchestra_wake`, que responde `unavailable`.
+Without this secret everything works the same, except `orchestra_wake`, which returns `unavailable`.
 
-### 6. Verificar
+### 6. Verify
 
 ```bash
-curl https://orchestra-man.<tu-subdominio>.workers.dev/v1/health
+curl https://orchestra-man.<your-subdomain>.workers.dev/v1/health
 # {"status":"ok","service":"orchestra-man","version":"0.2.0"}
 ```
 
-### 7. Token de la máquina y plugin
+### 7. Machine token and plugin
 
-Emití un token (ver la sección siguiente) y seguí [install-plugin.md](install-plugin.md) con la URL y el token.
+Issue a token (see the next section) and follow [install-plugin.md](install-plugin.md) with the URL and the token.
 
-## Emitir más tokens
+## Issue more tokens
 
-Un token por laptop o codespace, así podés revocarlos por separado:
+One token per laptop or codespace, so you can revoke them separately:
 
 ```bash
-export ORCHESTRA_URL=https://orchestra-man.<tu-subdominio>.workers.dev
+export ORCHESTRA_URL=https://orchestra-man.<your-subdomain>.workers.dev
 read -r -s -p "ADMIN_TOKEN: " ADMIN_TOKEN; echo
 
 curl -s -X POST "$ORCHESTRA_URL/v1/admin/tokens" \
@@ -155,56 +155,56 @@ curl -s -X POST "$ORCHESTRA_URL/v1/admin/tokens" \
 # {"id":"tok_...","name":"laptop-tomas","token":"om_...","createdAt":"..."}
 ```
 
-El `token` se muestra **una sola vez**: el Worker guarda solo su SHA-256. Para revocarlo:
+The `token` is shown **only once**: the Worker stores only its SHA-256. To revoke it:
 
 ```bash
 curl -s -X POST "$ORCHESTRA_URL/v1/admin/tokens/<id>/revoke" -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-> Un token por máquina, pero todas tus máquinas comparten la misma base. Para compartir memoria con un colega, ambos tienen que apuntar al mismo Worker; si cada uno despliega el suyo, cada uno tiene su propia memoria.
+> One token per machine, but all your machines share the same database. To share memory with a colleague, both of you must point to the same Worker; if each of you deploys your own, each has their own memory.
 
-## Mantenimiento automático
+## Automatic maintenance
 
-El Worker trae un Cron Trigger diario (`17 3 * * *`, UTC) que:
+The Worker includes a daily Cron Trigger (`17 3 * * *`, UTC) that:
 
-- borra mensajes leídos tras `RETENTION_ACKED_MESSAGE_DAYS` (7) y no leídos tras `RETENTION_UNREAD_MESSAGE_DAYS` (30);
-- borra checkpoints de más de `RETENTION_CHECKPOINT_DAYS` (30), **conservando siempre el último de cada repo**;
-- libera leases vencidos.
+- deletes read messages after `RETENTION_ACKED_MESSAGE_DAYS` (7) and unread ones after `RETENTION_UNREAD_MESSAGE_DAYS` (30);
+- deletes checkpoints older than `RETENTION_CHECKPOINT_DAYS` (30), **always keeping the latest one for each repo**;
+- releases expired leases.
 
-Los valores están en `vars` de `worker/wrangler.jsonc`; si los cambiás, cambialos también en tu `worker/wrangler.local.jsonc`. Las memorias no expiran: se actualizan por upsert.
+The values are in `vars` in `worker/wrangler.jsonc`; if you change them, also change them in your `worker/wrangler.local.jsonc`. Memories do not expire: they are updated by upsert.
 
-## Desarrollo local del Worker
+## Local Worker development
 
-No necesita cuenta ni configuración personal: usa la plantilla y una D1 local.
+It needs no account and no personal config: it uses the template and a local D1.
 
 ```bash
-cp worker/.dev.vars.example worker/.dev.vars   # y editá ADMIN_TOKEN
+cp worker/.dev.vars.example worker/.dev.vars   # and edit ADMIN_TOKEN
 npm run worker:migrate:local
 npm run worker:dev                             # http://localhost:8787
 ```
 
-## Actualizar
+## Update
 
 ```bash
 git pull
 npm ci
-npm run worker:migrate:remote   # aplica solo migraciones nuevas
+npm run worker:migrate:remote   # applies only new migrations
 npm run worker:deploy
 ```
 
 ## Backups
 
-D1 tiene Time Travel: podés restaurar la base a cualquier minuto de los últimos 7 días (Free) o 30 días (Paid) con `npx wrangler d1 time-travel restore`.
+D1 has Time Travel: you can restore the database to any minute in the last 7 days (Free) or 30 days (Paid) with `npx wrangler d1 time-travel restore`.
 
-`wrangler d1 export` **no funciona con bases que tienen tablas virtuales**, y `memories_fts` lo es. El procedimiento que indica Cloudflare es borrar la tabla virtual, exportar y recrearla:
+`wrangler d1 export` **does not work with databases that have virtual tables**, and `memories_fts` is one. The procedure Cloudflare recommends is to drop the virtual table, export, and recreate it:
 
 ```bash
-# `d1 export` pide el nombre de la base (no el binding): usá el database_name de tu configuración local.
+# `d1 export` needs the database name (not the binding): use the database_name from your local config.
 DB="orchestra-man -c worker/wrangler.local.jsonc --remote"
 npx wrangler d1 execute $DB --command "DROP TRIGGER memories_ai; DROP TRIGGER memories_ad; DROP TRIGGER memories_au; DROP TABLE memories_fts;"
 npx wrangler d1 export $DB --output backup.sql
-# Recreá la tabla y los triggers copiando su bloque de migrations/0001_init.sql, y después:
+# Recreate the table and triggers by copying their block from migrations/0001_init.sql, then:
 npx wrangler d1 execute $DB --command "INSERT INTO memories_fts(memories_fts) VALUES('rebuild');"
 ```
 
-Mientras la tabla no existe, la búsqueda falla y las escrituras de memorias también. Hacelo con las sesiones cerradas.
+While the table does not exist, search fails and so do memory writes. Do it with all sessions closed.

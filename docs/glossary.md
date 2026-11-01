@@ -1,22 +1,22 @@
-# Glosario
+# Glossary
 
-| Término | Significado |
+| Term | Meaning |
 | --- | --- |
-| **Agente** | Una sesión de Claude Code con el plugin, en un repo y una máquina. Id `repo#machine` |
-| **Orquestador** | El agente que tiene el lease de una tarea. Al principio, el que la creó; puede rotar |
-| **Lease** | Permiso exclusivo y temporal (10 minutos, renovable) para ejecutar pasos de una tarea |
-| **Backend** | Dónde se guarda lo compartido: tu Worker con D1 (modo `d1`) o un SQLite local (modo `local`) |
-| **Memoria** | Conocimiento curado que guarda un agente con `orchestra_save`. Vive en el SQLite local y, si es `project`, se publica enmascarado en el backend |
-| **Alcance** | `project` (se comparte) o `personal` (nunca sale de la máquina) |
-| **topic_key** | Clave estable de un tema (`architecture/invoice-api`). Guardar con la misma clave actualiza la memoria y conserva la versión anterior |
-| **change_seq** | Secuencia monótona de cambios de la memoria local; la sincronización avanza por ella |
-| **Checkpoint** | Foto de un repo: rama, commit, archivos sin commitear y memorias recientes |
-| **Bandeja** | Mensajes dirigidos a un repo, no a una máquina: cualquier agente de ese repo puede atenderlos |
-| **Fase** | Etapa del grafo: investigate, plan, approve, edit, verify, propose, done, cancelled |
-| **Instrucción** | Texto que el grafo devuelve en cada paso para indicarle a Claude qué hacer |
-| **Placeholder** | Reemplazo de un dato sensible, como `<email:bab800ec>` |
-| **Salt** | Secreto local que hace que los placeholders no se puedan revertir. Igual en todas tus máquinas |
-| **Monitor** | Proceso del plugin que corre durante la sesión: avisa mensajes nuevos y sincroniza periódicamente |
-| **Wake** | Encender un codespace apagado por la API de GitHub |
-| **Puerto `Remote`** | Interfaz que usa el plugin para hablar con el backend, sea cual sea |
-| **`SqlDatabase`** | Interfaz con forma de D1 que permite correr el mismo SQL en D1 y en `node:sqlite` |
+| **Agent** | A Claude Code session with the plugin, in one repo and on one machine. Id `repo#machine` |
+| **Orchestrator** | The agent that holds a task's lease. Initially, the one that created it; it can rotate |
+| **Lease** | Exclusive, temporary permission (10 minutes, renewable) to run a task's steps |
+| **Backend** | Where shared data is stored: your Worker with D1 (`d1` mode) or a local SQLite (`local` mode) |
+| **Memory** | Curated knowledge an agent saves with `orchestra_save`. It lives in the local SQLite and, if it is `project`, it is published masked to the backend |
+| **Scope** | `project` (shared) or `personal` (never leaves the machine) |
+| **topic_key** | Stable key for a topic (`architecture/invoice-api`). Saving with the same key updates the memory and keeps the previous version |
+| **change_seq** | Monotonic sequence of local memory changes; sync advances along it |
+| **Checkpoint** | Snapshot of a repo: branch, commit, uncommitted files and recent memories |
+| **Inbox** | Messages addressed to a repo, not a machine: any agent of that repo can handle them |
+| **Phase** | A graph stage: investigate, plan, approve, edit, verify, propose, done, cancelled |
+| **Instruction** | Text the graph returns at each step to tell Claude what to do |
+| **Placeholder** | Replacement for a sensitive value, such as `<email:bab800ec>` |
+| **Salt** | Local secret that makes placeholders irreversible. The same on all your machines |
+| **Monitor** | Plugin process that runs during the session: notifies new messages and syncs periodically |
+| **Wake** | Starting a shut-down codespace through the GitHub API |
+| **`Remote` port** | Interface the plugin uses to talk to the backend, whichever it is |
+| **`SqlDatabase`** | D1-shaped interface that lets the same SQL run on D1 and on `node:sqlite` |

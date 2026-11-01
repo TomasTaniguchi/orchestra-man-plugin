@@ -1,72 +1,72 @@
-# Herramientas MCP
+# MCP tools
 
-El servidor MCP del plugin se llama `orchestra` y expone 23 herramientas: 11 de memoria de este repo, 4 de consulta compartida, 4 de mensajes y 4 de tareas. Definición: `TOOLS` en `src/plugin/mcp.ts`. Cada error vuelve como resultado MCP con `isError: true` y un mensaje que empieza con `orchestra-man:`; el servidor nunca se cae por un error de una herramienta.
+The plugin's MCP server is named `orchestra` and exposes 23 tools: 11 for this repo's memory, 4 for shared queries, 4 for messages, and 4 for tasks. Definition: `TOOLS` in `src/plugin/mcp.ts`. Every error comes back as an MCP result with `isError: true` and a message that starts with `orchestra-man:`; the server never crashes because of a tool error.
 
-## Memoria de este repo
+## This repo's memory
 
-Local, al instante y sin enmascarar. Lo `project` se publica en la siguiente sincronización; lo `personal` nunca sale de la máquina. Protocolo de uso: skill `memory`.
+Local, instant and unmasked. `project` memories are published on the next sync; `personal` ones never leave the machine. Usage protocol: the `memory` skill.
 
-| Herramienta | Entrada | Devuelve |
+| Tool | Input | Returns |
 | --- | --- | --- |
-| `orchestra_save` | `title`, `type`, `content`, `scope?` (`project`/`personal`), `topicKey?` | `{ id, outcome, topicKey, revision, scope }`. `outcome`: `created`, `updated-topic` (mismo `topicKey`: versión anterior al historial) o `deduplicated` (igual en menos de 15 min) |
-| `orchestra_update` | `id` y los campos a cambiar | La memoria actualizada; la anterior queda como versión |
-| `orchestra_delete` | `id`, `hard?` | Soft por defecto. `hard` borra contenido e historial. Ambos se retiran del backend |
-| `orchestra_get` | `id`, `history?` | La memoria completa y, con `history`, sus versiones |
-| `orchestra_search` | `query`, `type?`, `scope?`, `limit?` | Coincidencias en la memoria local de este repo, con `snippet` |
-| `orchestra_context` | `compact?`, `maxBytes?` | Sesiones recientes, fijadas y recientes (16 KB por defecto) |
-| `orchestra_timeline` | `id`, `before?`, `after?` | Memorias guardadas antes y después en la misma sesión |
-| `orchestra_pin` | `id`, `pinned?` | Fija (o desfija con `pinned=false`) para que aparezca siempre en el contexto |
-| `orchestra_suggest_topic_key` | `type`, `title`, `content?` | `{ topicKey }`, por ejemplo `architecture/invoice-api` |
-| `orchestra_session_summary` | `content` | Guarda el resumen de la sesión (uno por sesión, se actualiza si se repite) |
-| `orchestra_capture_passive` | `content` | `{ extracted, saved, duplicates }` de los ítems de una sección `## Key Learnings` / `## Aprendizajes` |
+| `orchestra_save` | `title`, `type`, `content`, `scope?` (`project`/`personal`), `topicKey?` | `{ id, outcome, topicKey, revision, scope }`. `outcome`: `created`, `updated-topic` (same `topicKey`: previous version goes to history) or `deduplicated` (identical within 15 min) |
+| `orchestra_update` | `id` and the fields to change | The updated memory; the previous one is kept as a version |
+| `orchestra_delete` | `id`, `hard?` | Soft by default. `hard` deletes content and history. Both are withdrawn from the backend |
+| `orchestra_get` | `id`, `history?` | The full memory and, with `history`, its versions |
+| `orchestra_search` | `query`, `type?`, `scope?`, `limit?` | Matches in this repo's local memory, with `snippet` |
+| `orchestra_context` | `compact?`, `maxBytes?` | Recent sessions, pinned and recent memories (16 KB by default) |
+| `orchestra_timeline` | `id`, `before?`, `after?` | Memories saved before and after in the same session |
+| `orchestra_pin` | `id`, `pinned?` | Pins (or unpins with `pinned=false`) so it always appears in the context |
+| `orchestra_suggest_topic_key` | `type`, `title`, `content?` | `{ topicKey }`, for example `architecture/invoice-api` |
+| `orchestra_session_summary` | `content` | Saves the session summary (one per session, updated if repeated) |
+| `orchestra_capture_passive` | `content` | `{ extracted, saved, duplicates }` from the items in a `## Key Learnings` / `## Aprendizajes` section |
 
-`<private>…</private>` se reemplaza por `[REDACTED]` antes de guardar. Los ids son locales a cada máquina y las operaciones por id solo alcanzan memorias de este repo.
+`<private>…</private>` is replaced with `[REDACTED]` before saving. Ids are local to each machine, and id-based operations only reach this repo's memories.
 
-## Consulta compartida
+## Shared queries
 
-| Herramienta | Entrada | Devuelve |
+| Tool | Input | Returns |
 | --- | --- | --- |
-| `orchestra_status` | — | El diagnóstico en texto: configuración, backend y versión, este agente, memoria del repo (y cambios sin publicar), otros repos online/offline, bandeja y qué resolver. Es lo que muestra `/orchestra-man:help` y lo mismo que `cli.mjs doctor` |
-| `orchestra_recall` | `query`, `repo?`, `limit?` (1–50) | Memorias que coinciden, con `snippet` (coincidencias entre `[ ]`). Funciona aunque el codespace del repo esté apagado |
-| `orchestra_checkpoints` | `repo?` | Último checkpoint por repo: rama, commit, archivos sin commitear, memorias recientes |
-| `orchestra_sync` | — | Publica ahora los cambios de memoria de este repo (enmascarados, solo `project`) y guarda un checkpoint |
+| `orchestra_status` | — | The diagnosis as text: configuration, backend and version, this agent, repo memory (and unsynced changes), other repos online/offline, inbox, and what to fix. It is what `/orchestra-man:help` shows and the same as `cli.mjs doctor` |
+| `orchestra_recall` | `query`, `repo?`, `limit?` (1–50) | Matching memories, with `snippet` (matches between `[ ]`). Works even when the repo's codespace is stopped |
+| `orchestra_checkpoints` | `repo?` | Latest checkpoint per repo: branch, commit, uncommitted files, recent memories |
+| `orchestra_sync` | — | Publishes this repo's memory changes now (masked, `project` only) and saves a checkpoint |
 
-## Mensajes
+## Messages
 
-| Herramienta | Entrada | Devuelve |
+| Tool | Input | Returns |
 | --- | --- | --- |
-| `orchestra_send` | `toRepo`, `kind`, `body`, `taskId?` | El mensaje creado. El `body` se enmascara antes de salir |
-| `orchestra_inbox` | `includeAcked?` | Mensajes a este repo, los más viejos primero (máximo 100) |
-| `orchestra_ack` | `messageId` | El mensaje marcado como atendido. Solo el repo destinatario puede hacerlo, una sola vez |
-| `orchestra_wake` | `repo` | `{ repo, codespaceName, state }`. Enciende el último codespace visto de ese repo. Requiere backend D1 y `GITHUB_TOKEN` en el Worker |
+| `orchestra_send` | `toRepo`, `kind`, `body`, `taskId?` | The created message. The `body` is masked before it leaves |
+| `orchestra_inbox` | `includeAcked?` | Messages to this repo, oldest first (at most 100) |
+| `orchestra_ack` | `messageId` | The message marked as handled. Only the recipient repo can do it, and only once |
+| `orchestra_wake` | `repo` | `{ repo, codespaceName, state }`. Starts the last seen codespace of that repo. Requires the D1 backend and `GITHUB_TOKEN` in the Worker |
 
 `kind`: `investigate-request`, `investigate-result`, `edit-request`, `edit-result`, `note`.
 
-## Tareas
+## Tasks
 
-| Herramienta | Entrada | Devuelve |
+| Tool | Input | Returns |
 | --- | --- | --- |
-| `orchestra_task_start` | `goal`, `repos` | Paso inicial: el que llama es el orquestador. Junta contexto y pide investigación a los otros repos |
-| `orchestra_task_advance` | `taskId`, `kind` y el campo que corresponda | Ejecuta un paso del grafo. Ver tabla abajo |
-| `orchestra_task_approve` | `taskId`, `decision` (`approve`, `revise`, `plan-only`), `note?` | **Decisión del usuario** sobre el plan. Herramienta aparte para que Claude Code pida permiso |
-| `orchestra_task_get` | `taskId` | Estado completo: fase, plan, ediciones, bitácora `actions` e `instruction` |
+| `orchestra_task_start` | `goal`, `repos` | Initial step: the caller becomes the orchestrator. Gathers context and asks the other repos to investigate |
+| `orchestra_task_advance` | `taskId`, `kind` and the matching field | Runs one step of the graph. See the table below |
+| `orchestra_task_approve` | `taskId`, `decision` (`approve`, `revise`, `plan-only`), `note?` | **User decision** on the plan. A separate tool so Claude Code asks for permission |
+| `orchestra_task_get` | `taskId` | Full state: phase, plan, edits, `actions` log and `instruction` |
 
-Campos de `orchestra_task_advance` según `kind`:
+`orchestra_task_advance` fields by `kind`:
 
-| `kind` | Campos | Fase |
+| `kind` | Fields | Phase |
 | --- | --- | --- |
 | `findings` | `findings: string[]` | investigate |
 | `plan` | `plan: string` | plan |
 | `edits` | `edits: { repo, branch, summary }[]` | edit |
 | `verification` | `passed: boolean`, `report: string` | verify |
 | `pull-requests` | `urls: string[]` | propose |
-| `cancel` | `reason: string` | cualquiera |
+| `cancel` | `reason: string` | any |
 
-Todas las herramientas de tareas devuelven `{ taskId, phase, status, instruction, state }`. Errores típicos:
+All task tools return `{ taskId, phase, status, instruction, state }`. Typical errors:
 
-- `conflict`: otro agente tiene el lease vigente, la tarea ya está cerrada, o la versión cambió.
-- `bad_request`: el `kind` no corresponde a la fase.
+- `conflict`: another agent holds the current lease, the task is already closed, or the version changed.
+- `bad_request`: the `kind` does not match the phase.
 
-## Permisos recomendados
+## Recommended permissions
 
-Permití sin preguntar las de solo lectura (`orchestra_status`, `orchestra_recall`, `orchestra_checkpoints`, `orchestra_inbox`, `orchestra_task_get`, `orchestra_search`, `orchestra_get`, `orchestra_context`, `orchestra_timeline`, `orchestra_suggest_topic_key`) y, si querés que Claude guarde memoria sin preguntar, `orchestra_save` y `orchestra_session_summary`. **No** permitas `orchestra_task_approve` de forma automática.
+Allow the read-only tools without prompting (`orchestra_status`, `orchestra_recall`, `orchestra_checkpoints`, `orchestra_inbox`, `orchestra_task_get`, `orchestra_search`, `orchestra_get`, `orchestra_context`, `orchestra_timeline`, `orchestra_suggest_topic_key`) and, if you want Claude to save memory without asking, `orchestra_save` and `orchestra_session_summary`. Do **not** allow `orchestra_task_approve` automatically.

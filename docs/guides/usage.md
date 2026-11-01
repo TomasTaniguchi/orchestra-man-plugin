@@ -1,10 +1,10 @@
-# Uso
+# Usage
 
-Ejemplos con tres repos que forman un producto: `acme/api` (órdenes), `acme/billing` (facturas, en un codespace) y `acme/web` (frontend).
+Examples with three repos that make up one product: `acme/api` (orders), `acme/billing` (invoices, in a codespace) and `acme/web` (frontend).
 
-## Al abrir Claude Code
+## When you open Claude Code
 
-El hook de inicio inyecta la memoria de tu repo y un bloque como este en el contexto:
+The start hook injects your repo's memory and a block like this into the context:
 
 ```
 ## Memoria de sesiones anteriores (acme/api)
@@ -24,14 +24,14 @@ Agente acme/api#laptop (local) · backend d1 · memorias sincronizadas: 3.
 - [investigate-request] de acme/web · tarea task_… · id msg_…: Tarea …: Mostrar el estado de pago en el checkout…
 ```
 
-## Ayuda en cualquier momento
+## Help at any time
 
 ```
-/orchestra-man:help            # diagnóstico + guía con ejemplos
-/orchestra-man:help tareas     # solo un tema: memoria, repos, tareas, mensajes, configuracion
+/orchestra-man:help            # diagnosis + guide with examples
+/orchestra-man:help tasks      # a single topic: memory, repos, tasks, messages, config
 ```
 
-El diagnóstico se ve así:
+The diagnosis looks like this:
 
 ```
 # orchestra-man · diagnóstico
@@ -51,62 +51,62 @@ El diagnóstico se ve así:
 Todo en orden.
 ```
 
-Si algo falla, la sección "Estado" dice qué hacer, por ejemplo "El token fue rechazado: emití uno nuevo…" o "Actualizá el Worker…".
+If something fails, the "Estado" (status) section says what to do, for example "El token fue rechazado: emití uno nuevo…" (the token was rejected: issue a new one) or "Actualizá el Worker…" (update the Worker).
 
-## 1. Memoria de tu repo
+## 1. Your repo's memory
 
-Claude guarda solo lo que vale la pena (skill `memory`): decisiones, causas raíz, contratos. También podés pedirlo:
+Claude saves only what is worth keeping (the `memory` skill): decisions, root causes, contracts. You can also ask for it:
 
-> Guardá que el endpoint de facturas devuelve invoiceId y status, y que la decisión fue no exponer el monto.
+> Save that the invoice endpoint returns invoiceId and status, and that we decided not to expose the amount.
 
-Usa `orchestra_save` con un `topicKey` como `architecture/invoice-api`. Si mañana cambia, se guarda con la misma clave: se actualiza y la versión anterior queda en el historial. Para algo solo tuyo ("mi alias de git…"), Claude usa `scope=personal` y nunca sale de tu máquina.
+It uses `orchestra_save` with a `topicKey` such as `architecture/invoice-api`. If it changes tomorrow, it is saved with the same key: it is updated and the previous version stays in the history. For something that is only yours ("my git alias…"), Claude uses `scope=personal` and it never leaves your machine.
 
-> ¿Qué decidimos la semana pasada sobre los reintentos de webhooks?
+> What did we decide last week about webhook retries?
 
-Claude busca primero en `orchestra_context`, después en `orchestra_search`, y lee completo con `orchestra_get`.
+Claude searches `orchestra_context` first, then `orchestra_search`, and reads the full entry with `orchestra_get`.
 
-Si la conversación se compacta, Claude recibe la instrucción de guardar el resumen antes de seguir, así no se pierde lo hecho.
+If the conversation is compacted, Claude is told to save the summary before continuing, so the work done is not lost.
 
-## 2. Preguntar por otro servicio
+## 2. Ask about another service
 
-> ¿Qué devuelve billing cuando creo una factura? ¿Reintenta los webhooks?
+> What does billing return when I create an invoice? Does it retry webhooks?
 
-Claude busca en la memoria compartida con `orchestra_recall` (el codespace de billing puede estar apagado) y cita el checkpoint del que sale la información. Si no alcanza, te ofrece mandar un `investigate-request` o encender el codespace.
+Claude searches the shared memory with `orchestra_recall` (the billing codespace may be stopped) and cites the checkpoint the information comes from. If that is not enough, it offers to send an `investigate-request` or to start the codespace.
 
-## 3. Una tarea entre repos
+## 3. A cross-repo task
 
-> Las órdenes tienen que guardar el invoiceId de billing y web tiene que mostrar el link al recibo. Coordinalo.
+> Orders need to store the invoiceId from billing, and web needs to show the receipt link. Coordinate it.
 
-1. **Investigar.** `orchestra_task_start` junta la memoria y los checkpoints de los tres repos, y manda pedidos de investigación a billing y web.
-2. **Respuestas.** Los Claude de billing y web reciben el aviso del monitor, investigan su código y responden. En api, Claude las lee con `orchestra_inbox`.
-3. **Plan.** Claude te muestra un plan por repo: archivos, cambios, riesgos y cómo verificar.
-4. **Tu decisión.** Respondés "aprobado", "cambiá X" o "solo quiero el plan". Claude llama a `orchestra_task_approve` y Claude Code te pide permiso para esa herramienta.
-5. **Editar.** Cada repo trabaja en una rama nueva. Billing y web reciben un `edit-request` y **también piden confirmación en su sesión**.
-6. **Verificar.** Tests, lint y build. Si algo falla, se corrige y se vuelve a verificar. Tras 3 fallos, vuelve al plan y te pide autorización otra vez.
-7. **Proponer.** Un pull request por repo. Nunca hace merge.
+1. **Investigate.** `orchestra_task_start` gathers the memory and checkpoints of the three repos, and sends investigation requests to billing and web.
+2. **Responses.** The Claude sessions in billing and web get notified by the monitor, investigate their code and reply. In api, Claude reads the replies with `orchestra_inbox`.
+3. **Plan.** Claude shows you a plan per repo: files, changes, risks and how to verify.
+4. **Your decision.** You answer "approved", "change X" or "I only want the plan". Claude calls `orchestra_task_approve` and Claude Code asks you for permission for that tool.
+5. **Edit.** Each repo works on a new branch. Billing and web receive an `edit-request` and **also ask for confirmation in their own session**.
+6. **Verify.** Tests, lint and build. If something fails, it is fixed and verified again. After 3 failures, it goes back to the plan and asks for your authorization again.
+7. **Propose.** One pull request per repo. It never merges.
 
-En cualquier momento: "cancelá la tarea" o "¿en qué quedó la tarea task_…?" (`orchestra_task_get` muestra la bitácora completa).
+At any time: "cancel the task" or "what's the status of task task_…?" (`orchestra_task_get` shows the full log).
 
-## 4. Cuando te llega un pedido
+## 4. When you get a request
 
-El monitor escribe una línea como:
+The monitor writes a line like:
 
 ```
 [orchestra-man] Mensaje investigate-request de acme/api (tarea task_…), id msg_…: Tarea …: Link orders to invoices…
 ```
 
-Claude lo lee, investiga en tu repo y responde. Para un `edit-request` te pregunta antes de editar, aunque el usuario del otro repo ya lo haya aprobado.
+Claude reads it, investigates your repo and replies. For an `edit-request` it asks you before editing, even if the user of the other repo already approved it.
 
-## 5. Un repo apagado que hay que tocar
+## 5. A stopped repo you need to touch
 
-Si una tarea necesita **ejecutar o editar** en un codespace apagado, Claude te ofrece `orchestra_wake`, que lo enciende con la API de GitHub (necesita `GITHUB_TOKEN` en el Worker). Encender un codespace tiene costo; leer su memoria no.
+If a task needs to **run or edit** in a stopped codespace, Claude offers you `orchestra_wake`, which starts it through the GitHub API (it needs `GITHUB_TOKEN` in the Worker). Starting a codespace costs money; reading its memory does not.
 
-## 6. Si una máquina se duerme a mitad de tarea
+## 6. If a machine goes to sleep mid-task
 
-El lease del orquestador dura 10 minutos y se renueva en cada paso. Si tu laptop se suspende, desde otro repo podés decir "seguí la tarea task_…": cuando el lease venció, ese Claude la toma y la bitácora registra el cambio. Al volver, tu laptop recibe un aviso de que otro agente la está orquestando.
+The orchestrator lease lasts 10 minutes and is renewed at every step. If your laptop suspends, from another repo you can say "continue task task_…": once the lease has expired, that Claude takes it over and the log records the change. When your laptop comes back, it gets a notice that another agent is orchestrating the task.
 
-## Buenas prácticas
+## Best practices
 
-- Guardá memoria activamente (`orchestra_save` después de decisiones, contratos y bugfixes): es lo que los demás van a poder recordar. La skill `memory` le indica a Claude cuándo hacerlo.
-- Revisá la fecha del checkpoint antes de confiar en contexto de un repo offline.
-- No pegues secretos en planes ni mensajes. El enmascarado cubre los formatos conocidos, no todo.
+- Save memory actively (`orchestra_save` after decisions, contracts and bugfixes): that is what others will be able to recall. The `memory` skill tells Claude when to do it.
+- Check the checkpoint date before trusting context from an offline repo.
+- Do not paste secrets into plans or messages. Masking covers known formats, not everything.

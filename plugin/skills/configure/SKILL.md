@@ -1,51 +1,51 @@
 ---
 name: configure
-description: Configura orchestra-man en esta máquina (modo D1 con tu Worker o SQLite local, URL, token, salt de enmascarado, intervalos). Usalo cuando el usuario pida configurar orchestra-man o cuando una herramienta diga que no está configurado.
+description: Configures orchestra-man on this machine (D1 mode with your Worker or local SQLite, URL, token, masking salt, intervals). Use it when the user asks to configure orchestra-man or when a tool says it is not configured.
 disable-model-invocation: true
 argument-hint: "[d1|local]"
 ---
 
-# Configurar orchestra-man
+# Configure orchestra-man
 
-La configuración vive en `~/.config/orchestra-man/config.json` (permisos 0600) y las variables de entorno la pisan. La CLI es:
+The config lives in `~/.config/orchestra-man/config.json` (permissions 0600), and environment variables override it. The CLI is:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" configure --show
 ```
 
-Seguí estos pasos con el usuario. Argumento recibido: `$ARGUMENTS`.
+Follow these steps with the user. Argument received: `$ARGUMENTS`. Answer the user in the user's language.
 
-## 1. Elegir modo
+## 1. Choose a mode
 
-- **d1**: memoria y coordinación compartidas entre máquinas a través del Worker del usuario. Requiere haber desplegado el Worker: en el repo del plugin, `npm run worker:setup` lo hace de forma interactiva y deja configurada esa máquina (guía `docs/guides/deploy-worker.md`).
-- **local**: SQLite en esta máquina. Sirve para varios Claude locales en la misma máquina, o para probar sin nube.
+- **d1**: memory and coordination shared across machines through the user's Worker. Requires a deployed Worker: in the plugin repo, `npm run worker:setup` does it interactively and leaves that machine configured (guide `docs/guides/deploy-worker.md`).
+- **local**: SQLite on this machine. Useful for several local Claude sessions on the same machine, or to try it without the cloud.
 
-## 2. Valores no secretos
+## 2. Non-secret values
 
-Ejecutalos vos con Bash, por ejemplo:
+Run them yourself with Bash, for example:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" configure --set mode=d1 --set workerUrl=https://orchestra-man.<subdominio>.workers.dev
+node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" configure --set mode=d1 --set workerUrl=https://orchestra-man.<subdomain>.workers.dev
 ```
 
-Otras claves: `checkpointIntervalSec` (mínimo 60), `inboxPollSec`, `agentStaleMinutes`, `localDbPath`, `maskPatterns` (array JSON de regex extra, por ejemplo `'["CUST-\\d{6}"]'`).
+Other keys: `checkpointIntervalSec` (minimum 60), `inboxPollSec`, `agentStaleMinutes`, `localDbPath`, `maskPatterns` (JSON array of extra regexes, for example `'["CUST-\\d{6}"]'`).
 
-## 3. El token: nunca por el chat
+## 3. The token: never through the chat
 
-**No le pidas el token al usuario en la conversación ni lo pongas en un comando tuyo**: quedaría en el historial. Pedile que lo ejecute en su propia terminal y pegue el token, terminando con Ctrl-D:
+**Do not ask the user for the token in the conversation and do not put it in a command you run**: it would end up in the history. Ask them to run this in their own terminal and paste the token, ending with Ctrl-D:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" configure --token-stdin
 ```
 
-En un **codespace**, lo recomendado es no usar archivo: crear los secretos de GitHub Codespaces `ORCHESTRA_URL`, `ORCHESTRA_TOKEN` y `ORCHESTRA_MASK_SALT` para los repos que correspondan, y reiniciar el codespace.
+In a **codespace**, the recommended approach is to use no file: create the GitHub Codespaces secrets `ORCHESTRA_URL`, `ORCHESTRA_TOKEN` and `ORCHESTRA_MASK_SALT` for the relevant repos, and restart the codespace.
 
-## 4. Mismo salt en todas las máquinas
+## 4. Same salt on every machine
 
-El salt de enmascarado (`maskSalt`) se genera solo la primera vez. Para que un mismo email produzca el mismo placeholder en todos los repos, **todas las máquinas deben usar el mismo salt**. Indicale al usuario que copie el valor de `maskSalt` de su archivo a las demás máquinas (o al secreto `ORCHESTRA_MASK_SALT`). No lo imprimas completo vos.
+The masking salt (`maskSalt`) is generated automatically the first time. For the same email to produce the same placeholder in every repo, **all machines must use the same salt**. Tell the user to copy the `maskSalt` value from their file to the other machines (or to the `ORCHESTRA_MASK_SALT` secret). Do not print it in full yourself.
 
-## 5. Verificar
+## 5. Verify
 
-Llamá a la herramienta `orchestra_status` (o ejecutá `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" doctor`) y mostrale el diagnóstico al usuario. Si la sección "Estado" dice "Todo en orden.", está listo. Si no, resolvé cada punto que indique.
+Call the `orchestra_status` tool (or run `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" doctor`) and show the diagnosis to the user. If the "Estado" section says "Todo en orden." (all good), it is ready. If not, resolve each item it lists.
 
-Recordale al usuario que reinicie la sesión de Claude Code para que el hook de inicio y el monitor tomen la configuración, y que `/orchestra-man:help` muestra este diagnóstico y una guía con ejemplos cuando lo necesite.
+Remind the user to restart the Claude Code session so the start hook and the monitor pick up the config, and that `/orchestra-man:help` shows this diagnosis and a guide with examples whenever they need it.
