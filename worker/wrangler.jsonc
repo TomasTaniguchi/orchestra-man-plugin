@@ -1,0 +1,27 @@
+// orchestra-man Worker boilerplate. Each person deploys their own copy.
+// Setup guide: docs/guides/deploy-worker.md
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "orchestra-man",
+  "main": "../src/worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "orchestra-man",
+      // Replace with the id printed by `npx wrangler d1 create orchestra-man`.
+      "database_id": "REPLACE_WITH_YOUR_DATABASE_ID",
+      "migrations_dir": "../migrations"
+    }
+  ],
+  // Maintenance only (retention, expired leases). Checkpoints come from the machines, not from here.
+  "triggers": { "crons": ["17 3 * * *"] },
+  "vars": {
+    "RETENTION_ACKED_MESSAGE_DAYS": "7",
+    "RETENTION_UNREAD_MESSAGE_DAYS": "30",
+    "RETENTION_CHECKPOINT_DAYS": "30"
+  },
+  "observability": { "enabled": true }
+  // Secrets (never in this file): npx wrangler secret put ADMIN_TOKEN -c worker/wrangler.jsonc
+  // Optional, enables wake:       npx wrangler secret put GITHUB_TOKEN -c worker/wrangler.jsonc
+}

@@ -1,0 +1,3 @@
+# Copy to worker/.dev.vars for `npm run worker:dev`. Never commit .dev.vars.
+ADMIN_TOKEN=change-me-to-a-long-random-string
+# GITHUB_TOKEN=ghp_classic_token_with_codespace_scope
