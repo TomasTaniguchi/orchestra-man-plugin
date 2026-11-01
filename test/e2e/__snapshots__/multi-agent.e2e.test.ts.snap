@@ -1,0 +1,332 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`multi-agent scenario > matches the expected end-to-end outcome (snapshots) > conversation between agents 1`] = `
+[
+  "api: investigate",
+  "acme/billing handled investigate-request",
+  "acme/web handled investigate-request",
+  "api: edit",
+  "acme/billing handled edit-request",
+  "acme/web handled edit-request",
+  "api: edit",
+  "api: done",
+]
+`;
+
+exports[`multi-agent scenario > matches the expected end-to-end outcome (snapshots) > every message exchanged (masked) 1`] = `
+[
+  {
+    "ackedAt": null,
+    "ackedBy": null,
+    "body": "billing: POST /invoices returns invoiceId; contact <email:e3982a21>",
+    "createdAt": "2026-10-31T12:21:00.000Z",
+    "fromAgent": "acme/billing#cs-billing",
+    "fromRepo": "acme/billing",
+    "id": "msg_0003",
+    "kind": "investigate-result",
+    "taskId": "task_0001",
+    "toRepo": "acme/api",
+  },
+  {
+    "ackedAt": null,
+    "ackedBy": null,
+    "body": "web: checkout needs invoiceId to show a receipt link",
+    "createdAt": "2026-10-31T12:21:00.000Z",
+    "fromAgent": "acme/web#laptop",
+    "fromRepo": "acme/web",
+    "id": "msg_0004",
+    "kind": "investigate-result",
+    "taskId": "task_0001",
+    "toRepo": "acme/api",
+  },
+  {
+    "ackedAt": null,
+    "ackedBy": null,
+    "body": "branch feat/invoice-id, tests green",
+    "createdAt": "2026-10-31T12:21:00.000Z",
+    "fromAgent": "acme/billing#cs-billing",
+    "fromRepo": "acme/billing",
+    "id": "msg_0007",
+    "kind": "edit-result",
+    "taskId": "task_0001",
+    "toRepo": "acme/api",
+  },
+  {
+    "ackedAt": null,
+    "ackedBy": null,
+    "body": "branch feat/receipt-link, tests green",
+    "createdAt": "2026-10-31T12:21:00.000Z",
+    "fromAgent": "acme/web#laptop",
+    "fromRepo": "acme/web",
+    "id": "msg_0008",
+    "kind": "edit-result",
+    "taskId": "task_0001",
+    "toRepo": "acme/api",
+  },
+  {
+    "ackedAt": "2026-10-31T12:21:00.000Z",
+    "ackedBy": "acme/billing#cs-billing",
+    "body": "Tarea task_0001: Link orders to billing invoices
+Investigá en acme/billing lo relevante para esta tarea y respondé con orchestra_send (kind=investigate-result, taskId=task_0001).",
+    "createdAt": "2026-10-31T12:21:00.000Z",
+    "fromAgent": "acme/api#laptop",
+    "fromRepo": "acme/api",
+    "id": "msg_0001",
+    "kind": "investigate-request",
+    "taskId": "task_0001",
+    "toRepo": "acme/billing",
+  },
+  {
+    "ackedAt": "2026-10-31T12:21:00.000Z",
+    "ackedBy": "acme/billing#cs-billing",
+    "body": "Tarea task_0001 autorizada por el usuario.
+Plan:
+api: add orders.invoice_id; billing: return invoiceId on create; web: show receipt link
+
+Aplicá solo la parte de acme/billing en una rama nueva, corré los tests y respondé con orchestra_send (kind=edit-result, taskId=task_0001) indicando rama y resultado.",
+    "createdAt": "2026-10-31T12:21:00.000Z",
+    "fromAgent": "acme/api#laptop",
+    "fromRepo": "acme/api",
+    "id": "msg_0005",
+    "kind": "edit-request",
+    "taskId": "task_0001",
+    "toRepo": "acme/billing",
+  },
+  {
+    "ackedAt": "2026-10-31T12:21:00.000Z",
+    "ackedBy": "acme/web#laptop",
+    "body": "Tarea task_0001: Link orders to billing invoices
+Investigá en acme/web lo relevante para esta tarea y respondé con orchestra_send (kind=investigate-result, taskId=task_0001).",
+    "createdAt": "2026-10-31T12:21:00.000Z",
+    "fromAgent": "acme/api#laptop",
+    "fromRepo": "acme/api",
+    "id": "msg_0002",
+    "kind": "investigate-request",
+    "taskId": "task_0001",
+    "toRepo": "acme/web",
+  },
+  {
+    "ackedAt": "2026-10-31T12:21:00.000Z",
+    "ackedBy": "acme/web#laptop",
+    "body": "Tarea task_0001 autorizada por el usuario.
+Plan:
+api: add orders.invoice_id; billing: return invoiceId on create; web: show receipt link
+
+Aplicá solo la parte de acme/web en una rama nueva, corré los tests y respondé con orchestra_send (kind=edit-result, taskId=task_0001) indicando rama y resultado.",
+    "createdAt": "2026-10-31T12:21:00.000Z",
+    "fromAgent": "acme/api#laptop",
+    "fromRepo": "acme/api",
+    "id": "msg_0006",
+    "kind": "edit-request",
+    "taskId": "task_0001",
+    "toRepo": "acme/web",
+  },
+]
+`;
+
+exports[`multi-agent scenario > matches the expected end-to-end outcome (snapshots) > final task state 1`] = `
+{
+  "instruction": "Tarea terminada. Pull requests:
+- https://github.com/acme/api/pull/10
+- https://github.com/acme/billing/pull/7
+- https://github.com/acme/web/pull/3",
+  "phase": "done",
+  "state": {
+    "actions": [
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "investigate",
+        "note": "context from 3 repos, 2 requests sent",
+      },
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "investigate",
+        "note": "2 findings",
+      },
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "plan",
+        "note": "plan proposed",
+      },
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "approve",
+        "note": "edits authorized",
+      },
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "edit",
+        "note": "3 edits",
+      },
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "verify",
+        "note": "verification failed (1/3)",
+      },
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "edit",
+        "note": "1 edits",
+      },
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "verify",
+        "note": "verification passed",
+      },
+      {
+        "agent": "acme/api#laptop",
+        "at": "2026-10-31T12:21:00.000Z",
+        "node": "propose",
+        "note": "3 pull requests",
+      },
+    ],
+    "approval": {
+      "by": "acme/api#laptop",
+      "decision": "approve",
+      "note": "go",
+    },
+    "context": [
+      {
+        "checkpoint": "branch: main
+commit: 0123456789abcdef0123456789abcdef01234567
+uncommitted files (1): src/orders.ts
+recent memories:
+- Orders table",
+        "memories": [
+          {
+            "snippet": "[orders] has no invoice reference yet; [OrderService].create persists [orders].",
+            "title": "Orders table",
+          },
+        ],
+        "repo": "acme/api",
+      },
+      {
+        "checkpoint": "branch: main
+commit: 0123456789abcdef0123456789abcdef01234567
+uncommitted files (0): none
+recent memories:
+- Invoice API contract
+- Webhook retries",
+        "memories": [
+          {
+            "snippet": "POST /[invoices] creates an invoice and returns invoiceId. Contact [billing] owner <email:e3982a21> or <phone:631bb2f5>. Key <api_key:<secret_assignment:4fed32cd>",
+            "title": "Invoice API contract",
+          },
+        ],
+        "repo": "acme/billing",
+      },
+      {
+        "checkpoint": "branch: main
+commit: 0123456789abcdef0123456789abcdef01234567
+uncommitted files (0): none
+recent memories:
+- Checkout page",
+        "memories": [
+          {
+            "snippet": "Checkout shows order [totals] from GET /[orders]/:id.",
+            "title": "Checkout page",
+          },
+        ],
+        "repo": "acme/web",
+      },
+    ],
+    "edits": [
+      {
+        "branch": "feat/invoice-id",
+        "repo": "acme/api",
+        "summary": "orders.invoice_id column",
+      },
+      {
+        "branch": "feat/invoice-id",
+        "repo": "acme/billing",
+        "summary": "invoiceId in create response",
+      },
+      {
+        "branch": "feat/receipt-link",
+        "repo": "acme/web",
+        "summary": "receipt link",
+      },
+      {
+        "branch": "feat/invoice-id",
+        "repo": "acme/api",
+        "summary": "fix migration",
+      },
+    ],
+    "findings": [
+      "acme/billing: billing: POST /invoices returns invoiceId; contact <email:e3982a21>",
+      "acme/web: web: checkout needs invoiceId to show a receipt link",
+    ],
+    "goal": "Link orders to billing invoices",
+    "instruction": "Tarea terminada. Pull requests:
+- https://github.com/acme/api/pull/10
+- https://github.com/acme/billing/pull/7
+- https://github.com/acme/web/pull/3",
+    "iterations": 1,
+    "maxIterations": 3,
+    "orchestratorRepo": "acme/api",
+    "phase": "done",
+    "plan": "api: add orders.invoice_id; billing: return invoiceId on create; web: show receipt link",
+    "pullRequests": [
+      "https://github.com/acme/api/pull/10",
+      "https://github.com/acme/billing/pull/7",
+      "https://github.com/acme/web/pull/3",
+    ],
+    "repos": [
+      "acme/api",
+      "acme/billing",
+      "acme/web",
+    ],
+    "verification": {
+      "passed": true,
+      "report": "all green",
+    },
+  },
+  "status": "done",
+  "taskId": "task_0001",
+}
+`;
+
+exports[`multi-agent scenario > matches the expected end-to-end outcome (snapshots) > recall of a stopped codespace's memory 1`] = `
+[
+  {
+    "repo": "acme/billing",
+    "snippet": "[invoice].paid [webhooks] retry 3 times with exponential backoff; customer_id=<id:6a394990> was the incident.",
+    "sourceId": "bill-2",
+    "title": "Webhook retries",
+    "topicKey": null,
+    "type": "architecture",
+    "updatedAt": "2026-10-30T09:00:00Z",
+  },
+  {
+    "repo": "acme/billing",
+    "snippet": "POST /[invoices] creates an [invoice] and returns [invoiceId]. Contact billing owner <email:e3982a21> or <phone:631bb2f5>. Key <api_key:01883192>.",
+    "sourceId": "bill-1",
+    "title": "Invoice API contract",
+    "topicKey": "architecture/invoice-api",
+    "type": "architecture",
+    "updatedAt": "2026-10-30T09:00:00Z",
+  },
+]
+`;
+
+exports[`multi-agent scenario > matches the expected end-to-end outcome (snapshots) > session context injected in acme/api 1`] = `
+"# orchestra-man
+Agente acme/api#laptop (local) · backend d1 · memorias de Engram replicadas: 1.
+
+## Otros repositorios
+- acme/billing: online · cs-billing (codespace) · último checkpoint 2026-10-31T12:21:00.000Z en main@0123456
+- acme/web: offline · laptop (local) · último checkpoint 2026-10-31T12:01:00.000Z en main@0123456
+
+## Bandeja (0 sin leer)
+- vacía
+
+Para trabajo que cruza repositorios seguí la skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint."
+`;

@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`bundled plugin (local mode, two clones on one machine) > hooks print the session context and MCP tools coordinate both repos > SessionStart output in acme/api 1`] = `
+"# orchestra-man
+Agente acme/api#<host> (local) · backend local · Engram no disponible, memorias no replicadas (Engram is not reachable).
+
+## Otros repositorios
+- acme/billing: online · <host> (local) · último checkpoint <time> en main@<sha>
+
+## Bandeja (0 sin leer)
+- vacía
+
+Para trabajo que cruza repositorios seguí la skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint.
+"
+`;

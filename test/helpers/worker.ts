@@ -5,9 +5,11 @@ export const ADMIN_TOKEN = "admin-secret";
 export const BASE_URL = "https://orchestra.test";
 
 /** Runs the real Worker in-process over a migrated in-memory SQLite (the D1 stand-in). */
-export function inProcessWorker(options: { githubFetch?: typeof fetch; env?: Partial<Env> } = {}) {
+export function inProcessWorker(
+  options: { githubFetch?: typeof fetch; env?: Partial<Env>; clock?: ReturnType<typeof manualClock> } = {},
+) {
   const db = migratedDb();
-  const clock = manualClock();
+  const clock = options.clock ?? manualClock();
   const worker = createWorker({ clock, ids: sequentialIds(), fetch: options.githubFetch ?? (() => Promise.reject(new Error("no network"))) });
   const env: Env = { DB: db, ADMIN_TOKEN, ...options.env };
   const fetchFn: typeof fetch = async (input, init) => worker.fetch(new Request(input, init), env);

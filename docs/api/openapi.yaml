@@ -1,0 +1,273 @@
+openapi: 3.1.0
+info:
+  title: orchestra-man Worker API
+  version: 0.1.0
+  description: |
+    HTTP contract of the personal orchestra-man Worker (Cloudflare Workers + D1).
+    The executable source of truth is src/core/contract.ts (zod) and src/core/routes.ts;
+    test/e2e/contract.test.ts fails if the paths and methods here drift from the router.
+    Every route except /v1/health requires `Authorization: Bearer <token>`:
+    an agent token for /v1/*, the ADMIN_TOKEN secret for /v1/admin/*.
+servers:
+  - url: https://orchestra-man.example.workers.dev
+security:
+  - bearer: []
+paths:
+  /v1/health:
+    get:
+      operationId: health
+      security: []
+      responses:
+        "200": { description: Service is up, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+  /v1/agents:
+    post:
+      operationId: registerAgent
+      description: Registers this machine's agent or refreshes its heartbeat.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AgentRegistration" } } } }
+      responses:
+        "200": { description: Agent, content: { application/json: { schema: { $ref: "#/components/schemas/Agent" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+    get:
+      operationId: listAgents
+      responses:
+        "200": { description: Agents, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Agent" } } } } }
+  /v1/wake:
+    post:
+      operationId: wake
+      description: Starts the most recently seen codespace of a repo through the GitHub API. Requires the GITHUB_TOKEN secret.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [repo], properties: { repo: { $ref: "#/components/schemas/Repo" } } } } } }
+      responses:
+        "200": { description: Wake requested, content: { application/json: { schema: { $ref: "#/components/schemas/WakeResult" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /v1/memories:
+    put:
+      operationId: upsertMemories
+      description: Upserts up to 50 memories in one transactional D1 batch. An older copy never replaces a newer one.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/MemoryBatch" } } } }
+      responses:
+        "200": { description: Rows written, content: { application/json: { schema: { type: object, properties: { upserted: { type: integer } } } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /v1/memories/search:
+    get:
+      operationId: searchMemories
+      description: Full-text (FTS5, bm25) search. Words are OR-ed prefix terms.
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, maxLength: 200 } }
+        - { name: repo, in: query, schema: { $ref: "#/components/schemas/Repo" } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        "200": { description: Hits, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/MemoryHit" } } } } }
+  /v1/checkpoints:
+    post:
+      operationId: saveCheckpoint
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CheckpointInput" } } } }
+      responses:
+        "201": { description: Saved, content: { application/json: { schema: { $ref: "#/components/schemas/Checkpoint" } } } }
+  /v1/checkpoints/latest:
+    get:
+      operationId: latestCheckpoints
+      description: The latest checkpoint of each repo (or of one repo).
+      parameters:
+        - { name: repo, in: query, schema: { $ref: "#/components/schemas/Repo" } }
+      responses:
+        "200": { description: Checkpoints, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Checkpoint" } } } } }
+  /v1/tasks:
+    post:
+      operationId: createTask
+      description: Creates a task. The creator holds the lease (it is the orchestrator).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TaskCreate" } } } }
+      responses:
+        "201": { description: Task, content: { application/json: { schema: { $ref: "#/components/schemas/Task" } } } }
+  /v1/tasks/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getTask
+      responses:
+        "200": { description: Task, content: { application/json: { schema: { $ref: "#/components/schemas/Task" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      operationId: updateTask
+      description: Saves new state. Only the lease holder, only at the expected version (else 409).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TaskUpdate" } } } }
+      responses:
+        "200": { description: Task, content: { application/json: { schema: { $ref: "#/components/schemas/Task" } } } }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/tasks/{id}/lease:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: acquireLease
+      description: Takes or renews the lease when it is free, already yours, or expired (orchestrator rotation).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/LeaseRequest" } } } }
+      responses:
+        "200": { description: Task, content: { application/json: { schema: { $ref: "#/components/schemas/Task" } } } }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/messages:
+    post:
+      operationId: sendMessage
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/MessageInput" } } } }
+      responses:
+        "201": { description: Sent, content: { application/json: { schema: { $ref: "#/components/schemas/Message" } } } }
+    get:
+      operationId: inbox
+      parameters:
+        - { name: repo, in: query, required: true, schema: { $ref: "#/components/schemas/Repo" } }
+        - { name: includeAcked, in: query, schema: { type: string, enum: ["true", "false"], default: "false" } }
+      responses:
+        "200": { description: Messages (max 100, oldest first), content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Message" } } } } }
+  /v1/messages/{id}/ack:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: ackMessage
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [agentId, repo], properties: { agentId: { type: string }, repo: { $ref: "#/components/schemas/Repo" } } } } } }
+      responses:
+        "200": { description: Acknowledged, content: { application/json: { schema: { $ref: "#/components/schemas/Message" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/admin/tokens:
+    post:
+      operationId: createToken
+      description: Issues an agent token (ADMIN_TOKEN required). The raw token is returned only once; only its SHA-256 is stored.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, maxLength: 100 } } } } } }
+      responses:
+        "201": { description: Token, content: { application/json: { schema: { $ref: "#/components/schemas/TokenCreated" } } } }
+  /v1/admin/tokens/{id}/revoke:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: revokeToken
+      responses:
+        "200": { description: Revoked, content: { application/json: { schema: { type: object, properties: { id: { type: string }, revoked: { type: boolean } } } } } }
+        "404": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+  responses:
+    Error:
+      description: Contract error
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  schemas:
+    Repo: { type: string, pattern: '^[\w.-]+/[\w.-]+$', description: "owner/name, or local/<dir> without a git remote" }
+    Health:
+      type: object
+      properties: { status: { const: ok }, service: { const: orchestra-man }, version: { type: string } }
+    AgentRegistration:
+      type: object
+      required: [id, repo, machine, kind]
+      properties:
+        id: { type: string, description: "repo#machine" }
+        repo: { $ref: "#/components/schemas/Repo" }
+        machine: { type: string }
+        kind: { type: string, enum: [codespace, local] }
+        codespaceName: { type: [string, "null"] }
+    Agent:
+      allOf:
+        - { $ref: "#/components/schemas/AgentRegistration" }
+        - { type: object, properties: { createdAt: { type: string }, lastSeenAt: { type: string } } }
+    MemoryInput:
+      type: object
+      required: [sourceId, type, title, content, createdAt, updatedAt]
+      properties:
+        sourceId: { type: string, description: "Engram sync_id" }
+        type: { type: string, maxLength: 50 }
+        title: { type: string, maxLength: 300 }
+        content: { type: string, maxLength: 64000 }
+        topicKey: { type: [string, "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    MemoryBatch:
+      type: object
+      required: [agentId, repo, items]
+      properties:
+        agentId: { type: string }
+        repo: { $ref: "#/components/schemas/Repo" }
+        items: { type: array, minItems: 1, maxItems: 50, items: { $ref: "#/components/schemas/MemoryInput" } }
+    MemoryHit:
+      type: object
+      properties:
+        repo: { $ref: "#/components/schemas/Repo" }
+        sourceId: { type: string }
+        type: { type: string }
+        title: { type: string }
+        snippet: { type: string, description: "Matches wrapped in [ ]" }
+        topicKey: { type: [string, "null"] }
+        updatedAt: { type: string }
+    CheckpointInput:
+      type: object
+      required: [agentId, repo, branch, commitSha, summary]
+      properties:
+        agentId: { type: string }
+        repo: { $ref: "#/components/schemas/Repo" }
+        branch: { type: string }
+        commitSha: { type: string }
+        summary: { type: string, maxLength: 32000 }
+    Checkpoint:
+      allOf:
+        - { $ref: "#/components/schemas/CheckpointInput" }
+        - { type: object, properties: { id: { type: string }, createdAt: { type: string } } }
+    TaskCreate:
+      type: object
+      required: [agentId, title, repos, state]
+      properties:
+        agentId: { type: string }
+        title: { type: string, maxLength: 300 }
+        repos: { type: array, minItems: 1, maxItems: 20, items: { $ref: "#/components/schemas/Repo" } }
+        state: { type: object, description: "Graph state, see docs/architecture/orchestration.md" }
+    Task:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        repos: { type: array, items: { $ref: "#/components/schemas/Repo" } }
+        orchestrator: { type: string }
+        status: { type: string, enum: [open, done, cancelled] }
+        state: { type: object }
+        version: { type: integer }
+        leaseOwner: { type: [string, "null"] }
+        leaseExpiresAt: { type: [string, "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    LeaseRequest:
+      type: object
+      required: [agentId, ttlSeconds]
+      properties: { agentId: { type: string }, ttlSeconds: { type: integer, minimum: 10, maximum: 3600 } }
+    TaskUpdate:
+      type: object
+      required: [agentId, version, state, status]
+      properties:
+        agentId: { type: string }
+        version: { type: integer }
+        state: { type: object }
+        status: { type: string, enum: [open, done, cancelled] }
+    MessageInput:
+      type: object
+      required: [fromAgent, fromRepo, toRepo, kind, body]
+      properties:
+        fromAgent: { type: string }
+        fromRepo: { $ref: "#/components/schemas/Repo" }
+        toRepo: { $ref: "#/components/schemas/Repo" }
+        taskId: { type: [string, "null"] }
+        kind: { type: string, enum: [investigate-request, investigate-result, edit-request, edit-result, note] }
+        body: { type: string, maxLength: 32000 }
+    Message:
+      allOf:
+        - { $ref: "#/components/schemas/MessageInput" }
+        - type: object
+          properties: { id: { type: string }, createdAt: { type: string }, ackedAt: { type: [string, "null"] }, ackedBy: { type: [string, "null"] } }
+    WakeResult:
+      type: object
+      properties: { repo: { $ref: "#/components/schemas/Repo" }, codespaceName: { type: string }, state: { type: string } }
+    TokenCreated:
+      type: object
+      properties: { id: { type: string }, name: { type: string }, token: { type: string }, createdAt: { type: string } }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, enum: [bad_request, unauthorized, not_found, conflict, unavailable, internal] }
+            message: { type: string }

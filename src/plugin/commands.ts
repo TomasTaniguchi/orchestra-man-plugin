@@ -67,7 +67,7 @@ export function formatSessionContext(view: SessionView): string {
     .sort();
   const syncLine =
     view.sync.status === "synced"
-      ? `${view.sync.upserted} memorias de Engram replicadas`
+      ? `memorias de Engram replicadas: ${view.sync.upserted}`
       : `Engram no disponible, memorias no replicadas (${view.sync.detail ?? ""})`;
   const repoLines = repos.map((repo) => {
     const agents = view.agents.filter((a) => a.repo === repo);
