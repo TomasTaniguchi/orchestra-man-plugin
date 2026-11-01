@@ -64,11 +64,11 @@ const preview = (text: string, max: number) => (text.length > max ? `${text.slic
 const shortSha = (sha: string) => sha.slice(0, 7);
 
 export const formatMessage = (m: Message, max = 300): string =>
-  `- [${m.kind}] de ${m.fromRepo}${m.taskId ? ` · tarea ${m.taskId}` : ""} · id ${m.id}: ${preview(m.body.replace(/\s+/g, " "), max)}`;
+  `- [${m.kind}] from ${m.fromRepo}${m.taskId ? ` · task ${m.taskId}` : ""} · id ${m.id}: ${preview(m.body.replace(/\s+/g, " "), max)}`;
 
 /** One line per incoming message, as the monitor prints them (each line becomes a notification). */
 export const formatNotification = (m: Message): string =>
-  `[orchestra-man] Mensaje ${m.kind} de ${m.fromRepo}${m.taskId ? ` (tarea ${m.taskId})` : ""}, id ${m.id}: ${preview(m.body.replace(/\s+/g, " "), 200)} — leelo con orchestra_inbox y respondé con orchestra_send.`;
+  `[orchestra-man] ${m.kind} message from ${m.fromRepo}${m.taskId ? ` (task ${m.taskId})` : ""}, id ${m.id}: ${preview(m.body.replace(/\s+/g, " "), 200)} — read it with orchestra_inbox and reply with orchestra_send.`;
 
 export interface SessionView {
   agent: Agent | Runtime["identity"]["agent"];
@@ -96,9 +96,9 @@ export function formatRepoLines(view: {
   return repos.map((repo) => {
     const agents = view.agents.filter((a) => a.repo === repo);
     const online = agents.some((a) => isOnline(a, view.now, view.staleMinutes));
-    const where = agents.map((a) => `${a.machine} (${a.kind})`).join(", ") || "sin agentes registrados";
+    const where = agents.map((a) => `${a.machine} (${a.kind})`).join(", ") || "no registered agents";
     const ckpt = view.checkpoints.find((c) => c.repo === repo);
-    const ckptText = ckpt ? `último checkpoint ${ckpt.createdAt} en ${ckpt.branch}@${shortSha(ckpt.commitSha)}` : "sin checkpoint";
+    const ckptText = ckpt ? `last checkpoint ${ckpt.createdAt} on ${ckpt.branch}@${shortSha(ckpt.commitSha)}` : "no checkpoint";
     return `- ${repo}: ${online ? "online" : "offline"} · ${where} · ${ckptText}`;
   });
 }
@@ -107,15 +107,15 @@ export function formatSessionContext(view: SessionView): string {
   const repoLines = formatRepoLines({ ownRepo: view.agent.repo, ...view });
   return [
     "# orchestra-man",
-    `Agente ${view.agent.id} (${view.agent.kind}) · backend ${view.mode} · memorias sincronizadas: ${view.sync.sent}${view.sync.pending ? " (quedan pendientes)" : ""}.`,
+    `Agent ${view.agent.id} (${view.agent.kind}) · backend ${view.mode} · memories synced: ${view.sync.sent}${view.sync.pending ? " (more pending)" : ""}.`,
     "",
-    "## Otros repositorios",
-    ...(repoLines.length ? repoLines : ["- ninguno registrado todavía"]),
+    "## Other repositories",
+    ...(repoLines.length ? repoLines : ["- none registered yet"]),
     "",
-    `## Bandeja (${view.inbox.length} sin leer)`,
-    ...(view.inbox.length ? view.inbox.slice(0, 10).map((m) => formatMessage(m)) : ["- vacía"]),
+    `## Inbox (${view.inbox.length} unread)`,
+    ...(view.inbox.length ? view.inbox.slice(0, 10).map((m) => formatMessage(m)) : ["- empty"]),
     "",
-    "Memoria de este repo: seguí la skill orchestra-man:memory. Trabajo entre repositorios: skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint.",
+    "This repo's memory: follow the orchestra-man:memory skill. Cross-repository work: the orchestra-man:orchestra skill. Context from offline repos is as of their last checkpoint.",
   ].join("\n");
 }
 
@@ -155,7 +155,7 @@ async function withCrossRepo(rt: Runtime, local: string): Promise<string> {
   try {
     return `${local}\n\n${await crossRepoContext(rt)}`;
   } catch (error) {
-    return `${local}\n\n# orchestra-man\nBackend compartido no disponible: ${(error as Error).message}`;
+    return `${local}\n\n# orchestra-man\nShared backend unavailable: ${(error as Error).message}`;
   }
 }
 
@@ -174,11 +174,11 @@ export async function sessionStart(rt: Runtime, hook: HookInput): Promise<string
 export async function postCompact(rt: Runtime, hook: HookInput): Promise<string> {
   startSession(rt, hook);
   const steps = [
-    "# orchestra-man: el contexto se compactó",
-    "Antes de seguir, en este orden:",
-    "1. Llamá a orchestra_session_summary con el contenido del resumen compactado (Goal, Discoveries, Accomplished, Next Steps, Relevant Files). Sin esto se pierde lo hecho antes de compactar.",
-    "2. Leé la memoria de abajo y, si hace falta más, orchestra_context u orchestra_search.",
-    "3. Recién entonces continuá con la tarea.",
+    "# orchestra-man: the context was compacted",
+    "Before continuing, in this order:",
+    "1. Call orchestra_session_summary with the content of the compacted summary (Goal, Discoveries, Accomplished, Next Steps, Relevant Files). Without it, the work done before the compaction is lost.",
+    "2. Read the memory below and, if you need more, orchestra_context or orchestra_search.",
+    "3. Only then continue with the task.",
   ].join("\n");
   return withCrossRepo(rt, `${steps}\n\n${memoryContext(rt)}`);
 }

@@ -41,7 +41,7 @@ describe("setup-worker-lib", () => {
     expect(out).toContain('"database_name": "om-db"');
     expect(out).toContain('"database_id": "uuid-1"');
     expect(out).not.toContain("REPLACE_WITH_YOUR_DATABASE_ID");
-    expect(() => renderConfig("{}", { workerName: "a", databaseName: "b", databaseId: "c" })).toThrow(/¿cambió la plantilla\?/);
+    expect(() => renderConfig("{}", { workerName: "a", databaseName: "b", databaseId: "c" })).toThrow(/did the template change\?/);
   });
 
   it("extracts the workers.dev URL from deploy output", () => {
@@ -59,7 +59,7 @@ describe("setup-worker-lib", () => {
       return Response.json({ status: "ok" });
     }) as typeof fetch;
     await expect(waitForHealth("https://w.dev", { delayMs: 1, fetchFn })).resolves.toEqual({ status: "ok" });
-    await expect(waitForHealth("https://w.dev", { attempts: 2, delayMs: 1, fetchFn: (async () => new Response("", { status: 503 })) as typeof fetch })).rejects.toThrow(/no respondió/);
+    await expect(waitForHealth("https://w.dev", { attempts: 2, delayMs: 1, fetchFn: (async () => new Response("", { status: 503 })) as typeof fetch })).rejects.toThrow(/did not respond/);
   });
 
   it("reports why a machine token could not be created", async () => {

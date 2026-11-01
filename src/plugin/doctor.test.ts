@@ -47,20 +47,20 @@ describe("doctor", () => {
   it("tells how to replace a rejected token", async () => {
     const { rt } = await healthyRuntime();
     rt.remote = withRemote(rt.remote, { health: () => Promise.reject(new OrchestraError("unauthorized", "invalid or revoked token")) });
-    expect(formatReport(await diagnose(rt))).toMatch(/✗ Backend: El token fue rechazado: emití uno nuevo/);
+    expect(formatReport(await diagnose(rt))).toMatch(/✗ Backend: The token was rejected: issue a new one/);
   });
 
   it("warns when the Worker runs another version", async () => {
     const { rt } = await healthyRuntime();
     rt.remote = withRemote(rt.remote, { health: async () => ({ status: "ok", service: "orchestra-man", version: "0.1.0" }) });
     const out = formatReport(await diagnose(rt));
-    expect(out).toMatch(/! Backend: responde con la versión 0\.1\.0; el plugin espera 0\.2\.0/);
+    expect(out).toMatch(/! Backend: responding with version 0\.1\.0; the plugin expects 0\.2\.0/);
     expect(out).toMatch(/npm run worker:deploy/);
   });
 
   it("warns about a repository without a git remote", async () => {
     const { rt } = testRuntime({ repo: "local/scratch" });
-    expect(formatReport(await diagnose(rt))).toMatch(/! Agente: .*no tiene remoto git[\s\S]*git remote add origin/);
+    expect(formatReport(await diagnose(rt))).toMatch(/! Agent: .*the repo has no git remote[\s\S]*git remote add origin/);
   });
 
   it("explains a missing configuration (snapshot)", () => {
@@ -83,7 +83,7 @@ describe("doctor entry points", () => {
     const r = io();
     const code = await runCli(["doctor"], r.io, { env: { ORCHESTRA_CONFIG: "/nonexistent/c.json" }, home: "/nonexistent" });
     expect(code).toBe(1);
-    expect(r.out[0]).toMatch(/✗ Configuración: .*\(archivo: \/nonexistent\/c\.json\)[\s\S]*orchestra-man:configure/);
+    expect(r.out[0]).toMatch(/✗ Configuration: .*\(file: \/nonexistent\/c\.json\)[\s\S]*orchestra-man:configure/);
   });
 
   it("orchestra_status returns the same report", async () => {

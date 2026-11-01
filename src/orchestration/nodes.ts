@@ -49,7 +49,7 @@ export const investigate: Node = async (task, input, ctx) => {
       phase: "plan",
       findings: [...task.findings, ...input.findings],
       instruction:
-        "Redactá un plan concreto por repositorio (archivos, cambios, riesgos, cómo verificar) y llamá a orchestra_task_advance con kind=plan.",
+        "Write a concrete plan per repository (files, changes, risks, how to verify) and call orchestra_task_advance with kind=plan.",
     });
   }
   const context = await Promise.all(
@@ -63,18 +63,18 @@ export const investigate: Node = async (task, input, ctx) => {
     await ctx.tools.send(
       repo,
       "investigate-request",
-      `Tarea ${ctx.taskId}: ${task.goal}\nInvestigá en ${repo} lo relevante para esta tarea y respondé con orchestra_send (kind=investigate-result, taskId=${ctx.taskId}).`,
+      `Task ${ctx.taskId}: ${task.goal}\nInvestigate in ${repo} what is relevant to this task and reply with orchestra_send (kind=investigate-result, taskId=${ctx.taskId}).`,
     );
   }
   return step(task, ctx, "investigate", `context from ${context.length} repos, ${others(task).length} requests sent`, {
     phase: "investigate",
     context,
     instruction: [
-      "Revisá el contexto compartido de la tarea y el código de tu repositorio.",
+      "Review the task's shared context and the code of your repository.",
       others(task).length
-        ? `Se pidió investigación a: ${others(task).join(", ")}. Leé sus respuestas con orchestra_inbox (pueden tardar; si un codespace está apagado usá orchestra_recall o orchestra_wake).`
+        ? `Investigation was requested from: ${others(task).join(", ")}. Read their replies with orchestra_inbox (they may take a while; if a codespace is stopped, use orchestra_recall or orchestra_wake).`
         : "",
-      "Cuando tengas hallazgos, llamá a orchestra_task_advance con kind=findings.",
+      "When you have findings, call orchestra_task_advance with kind=findings.",
     ]
       .filter(Boolean)
       .join(" "),
@@ -87,7 +87,7 @@ export const plan: Node = async (task, input, ctx) => {
     phase: "approve",
     plan: input.plan,
     instruction:
-      "Mostrale el plan al usuario y pedile autorización explícita. Después llamá a orchestra_task_approve con decision=approve, revise o plan-only. No edites código antes de eso.",
+      "Show the plan to the user and ask for explicit authorization. Then call orchestra_task_approve with decision=approve, revise or plan-only. Do not edit code before that.",
   });
 };
 
@@ -98,28 +98,28 @@ export const approve: Node = async (task, input, ctx) => {
     return step(task, ctx, "approve", "plan accepted without edits", {
       phase: "done",
       approval,
-      instruction: "Tarea cerrada: el plan quedó registrado y no se autorizó editar código.",
+      instruction: "Task closed: the plan was recorded and editing code was not authorized.",
     });
   }
   if (input.decision === "revise") {
     return step(task, ctx, "approve", `revision requested: ${input.note}`, {
       phase: "plan",
       approval,
-      instruction: `El usuario pidió revisar el plan: ${input.note || "sin detalle"}. Ajustalo y llamá a orchestra_task_advance con kind=plan.`,
+      instruction: `The user asked to revise the plan: ${input.note || "no details"}. Adjust it and call orchestra_task_advance with kind=plan.`,
     });
   }
   for (const repo of others(task)) {
     await ctx.tools.send(
       repo,
       "edit-request",
-      `Tarea ${ctx.taskId} autorizada por el usuario.\nPlan:\n${task.plan}\n\nAplicá solo la parte de ${repo} en una rama nueva, corré los tests y respondé con orchestra_send (kind=edit-result, taskId=${ctx.taskId}) indicando rama y resultado.`,
+      `Task ${ctx.taskId} authorized by the user.\nPlan:\n${task.plan}\n\nApply only the ${repo} part on a new branch, run the tests and reply with orchestra_send (kind=edit-result, taskId=${ctx.taskId}) with the branch and the result.`,
     );
   }
   return step(task, ctx, "approve", "edits authorized", {
     phase: "edit",
     approval,
     instruction:
-      "Aplicá la parte del plan de tu repositorio en una rama nueva (nunca en la rama principal). Esperá los edit-result de los otros repos en orchestra_inbox y llamá a orchestra_task_advance con kind=edits listando repo, rama y resumen de cada uno.",
+      "Apply your repository's part of the plan on a new branch (never on the main branch). Wait for the edit-result replies from the other repos in orchestra_inbox and call orchestra_task_advance with kind=edits, listing repo, branch and summary for each one.",
   });
 };
 
@@ -129,7 +129,7 @@ export const edit: Node = async (task, input, ctx) => {
     phase: "verify",
     edits: [...task.edits, ...input.edits],
     instruction:
-      "Verificá los cambios (tests, lint, build) en cada repositorio tocado y llamá a orchestra_task_advance con kind=verification, passed y un reporte.",
+      "Verify the changes (tests, lint, build) in every touched repository and call orchestra_task_advance with kind=verification, passed and a report.",
   });
 };
 
@@ -142,7 +142,7 @@ export const verify: Node = async (task, input, ctx) => {
       phase: "propose",
       verification,
       instruction:
-        "Abrí un pull request por repositorio tocado (no hagas merge) y llamá a orchestra_task_advance con kind=pull-requests y las URLs.",
+        "Open one pull request per touched repository (do not merge) and call orchestra_task_advance with kind=pull-requests and the URLs.",
     });
   }
   const iterations = task.iterations + 1;
@@ -151,14 +151,14 @@ export const verify: Node = async (task, input, ctx) => {
       phase: "plan",
       verification,
       iterations,
-      instruction: `La verificación falló ${iterations} veces. Revisá el plan con el usuario a partir del reporte y llamá a orchestra_task_advance con kind=plan (se volverá a pedir autorización).`,
+      instruction: `Verification failed ${iterations} times. Review the plan with the user based on the report and call orchestra_task_advance with kind=plan (authorization will be requested again).`,
     });
   }
   return step(task, ctx, "verify", `verification failed (${iterations}/${task.maxIterations})`, {
     phase: "edit",
     verification,
     iterations,
-    instruction: "La verificación falló. Corregí según el reporte y llamá a orchestra_task_advance con kind=edits.",
+    instruction: "Verification failed. Fix the issues in the report and call orchestra_task_advance with kind=edits.",
   });
 };
 
@@ -167,11 +167,11 @@ export const propose: Node = async (task, input, ctx) => {
   return step(task, ctx, "propose", `${input.urls.length} pull requests`, {
     phase: "done",
     pullRequests: input.urls,
-    instruction: `Tarea terminada. Pull requests:\n${bullet(input.urls) || "- ninguno"}`,
+    instruction: `Task done. Pull requests:\n${bullet(input.urls) || "- none"}`,
   });
 };
 
 export const cancel: Node = async (task, input, ctx) => {
   requireInput(task.phase, input, "cancel");
-  return step(task, ctx, "cancel", input.reason, { phase: "cancelled", instruction: `Tarea cancelada: ${input.reason}` });
+  return step(task, ctx, "cancel", input.reason, { phase: "cancelled", instruction: `Task cancelled: ${input.reason}` });
 };

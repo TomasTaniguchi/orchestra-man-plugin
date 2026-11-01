@@ -454,7 +454,7 @@ export class MemoryStore {
       project: input.project,
       sessionId: input.sessionId,
       type: "session_summary",
-      title: `Resumen de sesión: ${firstLine.replace(/^[#*\s]+/, "").slice(0, 120)}`,
+      title: `Session summary: ${firstLine.replace(/^[#*\s]+/, "").slice(0, 120)}`,
       content: input.content,
       topicKey: input.sessionId ? `session/${input.sessionId}` : null,
     });

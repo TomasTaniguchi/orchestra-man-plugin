@@ -69,7 +69,7 @@ Finishing an ordinary task does not require a summary.
 
 ## After a compaction
 
-If the context says it was compacted (a block reading "el contexto se compactó"):
+If the context says it was compacted (a block reading "the context was compacted"):
 
 1. **First**, `orchestra_session_summary` with the content of the compacted summary. Otherwise, the work done before compaction is lost.
 2. Then read the injected memory and, if needed, `orchestra_context`.

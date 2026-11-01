@@ -35,24 +35,24 @@ const bullet = (o: Observation, compact: boolean) => {
 /** The "memory from previous sessions" block, modelled on Engram's FormatContext. Pure. */
 export function formatMemoryContext(view: MemoryContextView): string {
   const compact = view.compact ?? false;
-  const lines = [`## Memoria de sesiones anteriores (${view.project})`];
+  const lines = [`## Memory from previous sessions (${view.project})`];
   if (!view.sessions.length && !view.pinned.length && !view.recent.length) {
-    lines.push("", "Sin memorias todavía. Guardá decisiones, causas raíz y contratos con orchestra_save.");
+    lines.push("", "No memories yet. Save decisions, root causes and contracts with orchestra_save.");
     return lines.join("\n");
   }
   if (view.sessions.length) {
-    lines.push("", "### Sesiones recientes");
+    lines.push("", "### Recent sessions");
     for (const s of view.sessions)
-      lines.push(`- ${s.startedAt}${s.endedAt ? "" : " (abierta)"}${s.summary ? `: ${oneLine(s.summary, 200)}` : ""}`);
+      lines.push(`- ${s.startedAt}${s.endedAt ? "" : " (open)"}${s.summary ? `: ${oneLine(s.summary, 200)}` : ""}`);
   }
   if (view.pinned.length) {
-    lines.push("", "### Fijadas");
+    lines.push("", "### Pinned");
     for (const o of view.pinned) lines.push(bullet(o, compact));
   }
   if (view.recent.length) {
-    lines.push("", "### Recientes");
+    lines.push("", "### Recent");
     for (const o of view.recent) lines.push(bullet(o, compact));
   }
-  lines.push("", "Contenido completo: orchestra_get con el #id. Búsqueda: orchestra_search.");
+  lines.push("", "Full content: orchestra_get with the #id. Search: orchestra_search.");
   return limitBytes(lines.join("\n"), view.maxBytes ?? CONTEXT_MAX_BYTES);
 }

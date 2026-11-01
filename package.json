@@ -1,6 +1,6 @@
 {
   "name": "orchestra-man-plugin",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Claude Code plugin for multi-agent code generation and correction across repositories, with shared memory on Cloudflare D1 or local SQLite.",
   "scripts": {
     "build": "node scripts/build-plugin.mjs",

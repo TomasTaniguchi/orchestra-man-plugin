@@ -19,7 +19,7 @@ Call the `orchestra_status` tool. If it is not available (for example, the MCP s
 node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" doctor
 ```
 
-Show the user the report **verbatim**, inside a code block. The report is printed in Spanish; do not translate it. If the "Estado" (status) section has problems (✗ or !), first explain what to do about each one, in one line, and offer to do it yourself when possible. For example, for "sin configurar" (not configured) offer `/orchestra-man:configure`. Never show or ask for tokens in the chat.
+Show the user the report **verbatim**, inside a code block. If the "Status" section has problems (✗ or !), first explain what to do about each one, in one line, and offer to do it yourself when possible. For example, for a missing configuration offer `/orchestra-man:configure`. Never show or ask for tokens in the chat.
 
 ## 2. Quick guide
 
@@ -67,7 +67,7 @@ Other requests: "what's the status of task task_…?", "cancel the task", "conti
 | "Ask billing which error codes /invoices returns" | `orchestra_send` |
 | "Do I have messages?" | `orchestra_inbox` |
 
-When a request arrives from another repo, a `[orchestra-man] Mensaje …` line appears and Claude handles it. It asks you before editing code, even if the other repo already approved it.
+When a request arrives from another repo, a `[orchestra-man] … message from …` line appears and Claude handles it. It asks you before editing code, even if the other repo already approved it.
 
 ### Configuration
 

@@ -94,7 +94,7 @@ describe("watch", () => {
     const { service } = testService();
     const m = await service.sendMessage({ fromAgent: agentB.id, fromRepo: agentB.repo, toRepo: "acme/api", kind: "edit-request", body: "line1\nline2", taskId: "task_1" });
     expect(formatNotification(m)).toMatchInlineSnapshot(
-      `"[orchestra-man] Mensaje edit-request de acme/billing (tarea task_1), id msg_0001: line1 line2 — leelo con orchestra_inbox y respondé con orchestra_send."`,
+      `"[orchestra-man] edit-request message from acme/billing (task task_1), id msg_0001: line1 line2 — read it with orchestra_inbox and reply with orchestra_send."`,
     );
   });
 });

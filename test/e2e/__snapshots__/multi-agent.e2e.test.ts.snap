@@ -66,8 +66,8 @@ exports[`multi-agent scenario > matches the expected end-to-end outcome (snapsho
   {
     "ackedAt": "2026-10-31T12:21:00.000Z",
     "ackedBy": "acme/billing#cs-billing",
-    "body": "Tarea task_0001: Link orders to billing invoices
-Investigá en acme/billing lo relevante para esta tarea y respondé con orchestra_send (kind=investigate-result, taskId=task_0001).",
+    "body": "Task task_0001: Link orders to billing invoices
+Investigate in acme/billing what is relevant to this task and reply with orchestra_send (kind=investigate-result, taskId=task_0001).",
     "createdAt": "2026-10-31T12:21:00.000Z",
     "fromAgent": "acme/api#laptop",
     "fromRepo": "acme/api",
@@ -79,11 +79,11 @@ Investigá en acme/billing lo relevante para esta tarea y respondé con orchestr
   {
     "ackedAt": "2026-10-31T12:21:00.000Z",
     "ackedBy": "acme/billing#cs-billing",
-    "body": "Tarea task_0001 autorizada por el usuario.
+    "body": "Task task_0001 authorized by the user.
 Plan:
 api: add orders.invoice_id; billing: return invoiceId on create; web: show receipt link
 
-Aplicá solo la parte de acme/billing en una rama nueva, corré los tests y respondé con orchestra_send (kind=edit-result, taskId=task_0001) indicando rama y resultado.",
+Apply only the acme/billing part on a new branch, run the tests and reply with orchestra_send (kind=edit-result, taskId=task_0001) with the branch and the result.",
     "createdAt": "2026-10-31T12:21:00.000Z",
     "fromAgent": "acme/api#laptop",
     "fromRepo": "acme/api",
@@ -95,8 +95,8 @@ Aplicá solo la parte de acme/billing en una rama nueva, corré los tests y resp
   {
     "ackedAt": "2026-10-31T12:21:00.000Z",
     "ackedBy": "acme/web#laptop",
-    "body": "Tarea task_0001: Link orders to billing invoices
-Investigá en acme/web lo relevante para esta tarea y respondé con orchestra_send (kind=investigate-result, taskId=task_0001).",
+    "body": "Task task_0001: Link orders to billing invoices
+Investigate in acme/web what is relevant to this task and reply with orchestra_send (kind=investigate-result, taskId=task_0001).",
     "createdAt": "2026-10-31T12:21:00.000Z",
     "fromAgent": "acme/api#laptop",
     "fromRepo": "acme/api",
@@ -108,11 +108,11 @@ Investigá en acme/web lo relevante para esta tarea y respondé con orchestra_se
   {
     "ackedAt": "2026-10-31T12:21:00.000Z",
     "ackedBy": "acme/web#laptop",
-    "body": "Tarea task_0001 autorizada por el usuario.
+    "body": "Task task_0001 authorized by the user.
 Plan:
 api: add orders.invoice_id; billing: return invoiceId on create; web: show receipt link
 
-Aplicá solo la parte de acme/web en una rama nueva, corré los tests y respondé con orchestra_send (kind=edit-result, taskId=task_0001) indicando rama y resultado.",
+Apply only the acme/web part on a new branch, run the tests and reply with orchestra_send (kind=edit-result, taskId=task_0001) with the branch and the result.",
     "createdAt": "2026-10-31T12:21:00.000Z",
     "fromAgent": "acme/api#laptop",
     "fromRepo": "acme/api",
@@ -126,7 +126,7 @@ Aplicá solo la parte de acme/web en una rama nueva, corré los tests y respond�
 
 exports[`multi-agent scenario > matches the expected end-to-end outcome (snapshots) > final task state 1`] = `
 {
-  "instruction": "Tarea terminada. Pull requests:
+  "instruction": "Task done. Pull requests:
 - https://github.com/acme/api/pull/10
 - https://github.com/acme/billing/pull/7
 - https://github.com/acme/web/pull/3",
@@ -265,7 +265,7 @@ recent memories:
       "acme/web: web: checkout needs invoiceId to show a receipt link",
     ],
     "goal": "Link orders to billing invoices",
-    "instruction": "Tarea terminada. Pull requests:
+    "instruction": "Task done. Pull requests:
 - https://github.com/acme/api/pull/10
 - https://github.com/acme/billing/pull/7
 - https://github.com/acme/web/pull/3",
@@ -318,25 +318,25 @@ exports[`multi-agent scenario > matches the expected end-to-end outcome (snapsho
 `;
 
 exports[`multi-agent scenario > matches the expected end-to-end outcome (snapshots) > session context injected in acme/api 1`] = `
-"## Memoria de sesiones anteriores (acme/api)
+"## Memory from previous sessions (acme/api)
 
-### Sesiones recientes
-- 2026-10-31T12:21:00.000Z (abierta)
+### Recent sessions
+- 2026-10-31T12:21:00.000Z (open)
 
-### Recientes
+### Recent
 - [architecture] Orders table (#1)
 
-Contenido completo: orchestra_get con el #id. Búsqueda: orchestra_search.
+Full content: orchestra_get with the #id. Search: orchestra_search.
 
 # orchestra-man
-Agente acme/api#laptop (local) · backend d1 · memorias sincronizadas: 1.
+Agent acme/api#laptop (local) · backend d1 · memories synced: 1.
 
-## Otros repositorios
-- acme/billing: online · cs-billing (codespace) · último checkpoint 2026-10-31T12:21:00.000Z en main@0123456
-- acme/web: offline · laptop (local) · último checkpoint 2026-10-31T12:01:00.000Z en main@0123456
+## Other repositories
+- acme/billing: online · cs-billing (codespace) · last checkpoint 2026-10-31T12:21:00.000Z on main@0123456
+- acme/web: offline · laptop (local) · last checkpoint 2026-10-31T12:01:00.000Z on main@0123456
 
-## Bandeja (0 sin leer)
-- vacía
+## Inbox (0 unread)
+- empty
 
-Memoria de este repo: seguí la skill orchestra-man:memory. Trabajo entre repositorios: skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint."
+This repo's memory: follow the orchestra-man:memory skill. Cross-repository work: the orchestra-man:orchestra skill. Context from offline repos is as of their last checkpoint."
 `;

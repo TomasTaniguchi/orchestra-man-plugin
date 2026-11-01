@@ -1,55 +1,55 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`bundled plugin (local mode, two clones on one machine) > runs the full memory and coordination cycle without Engram > SessionStart after compaction in acme/api 1`] = `
-"# orchestra-man: el contexto se compactó
-Antes de seguir, en este orden:
-1. Llamá a orchestra_session_summary con el contenido del resumen compactado (Goal, Discoveries, Accomplished, Next Steps, Relevant Files). Sin esto se pierde lo hecho antes de compactar.
-2. Leé la memoria de abajo y, si hace falta más, orchestra_context u orchestra_search.
-3. Recién entonces continuá con la tarea.
+"# orchestra-man: the context was compacted
+Before continuing, in this order:
+1. Call orchestra_session_summary with the content of the compacted summary (Goal, Discoveries, Accomplished, Next Steps, Relevant Files). Without it, the work done before the compaction is lost.
+2. Read the memory below and, if you need more, orchestra_context or orchestra_search.
+3. Only then continue with the task.
 
-## Memoria de sesiones anteriores (acme/api)
+## Memory from previous sessions (acme/api)
 
-### Sesiones recientes
-- <time> (abierta)
+### Recent sessions
+- <time> (open)
 
-### Recientes
+### Recent
 - [learning] OrderService.create is the only place that persists orders (#3)
 
-Contenido completo: orchestra_get con el #id. Búsqueda: orchestra_search.
+Full content: orchestra_get with the #id. Search: orchestra_search.
 
 # orchestra-man
-Agente acme/api#<host> (local) · backend local · memorias sincronizadas: 0.
+Agent acme/api#<host> (local) · backend local · memories synced: 0.
 
-## Otros repositorios
-- acme/billing: online · <host> (local) · último checkpoint <time> en main@<sha>
+## Other repositories
+- acme/billing: online · <host> (local) · last checkpoint <time> on main@<sha>
 
-## Bandeja (0 sin leer)
-- vacía
+## Inbox (0 unread)
+- empty
 
-Memoria de este repo: seguí la skill orchestra-man:memory. Trabajo entre repositorios: skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint.
+This repo's memory: follow the orchestra-man:memory skill. Cross-repository work: the orchestra-man:orchestra skill. Context from offline repos is as of their last checkpoint.
 "
 `;
 
 exports[`bundled plugin (local mode, two clones on one machine) > runs the full memory and coordination cycle without Engram > SessionStart output in acme/api 1`] = `
-"## Memoria de sesiones anteriores (acme/api)
+"## Memory from previous sessions (acme/api)
 
-### Sesiones recientes
-- <time> (abierta)
+### Recent sessions
+- <time> (open)
 
-### Recientes
+### Recent
 - [learning] OrderService.create is the only place that persists orders (#3)
 
-Contenido completo: orchestra_get con el #id. Búsqueda: orchestra_search.
+Full content: orchestra_get with the #id. Search: orchestra_search.
 
 # orchestra-man
-Agente acme/api#<host> (local) · backend local · memorias sincronizadas: 1.
+Agent acme/api#<host> (local) · backend local · memories synced: 1.
 
-## Otros repositorios
-- acme/billing: online · <host> (local) · último checkpoint <time> en main@<sha>
+## Other repositories
+- acme/billing: online · <host> (local) · last checkpoint <time> on main@<sha>
 
-## Bandeja (0 sin leer)
-- vacía
+## Inbox (0 unread)
+- empty
 
-Memoria de este repo: seguí la skill orchestra-man:memory. Trabajo entre repositorios: skill orchestra-man:orchestra. El contexto de repos offline es el de su último checkpoint.
+This repo's memory: follow the orchestra-man:memory skill. Cross-repository work: the orchestra-man:orchestra skill. Context from offline repos is as of their last checkpoint.
 "
 `;

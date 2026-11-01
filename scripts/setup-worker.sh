@@ -6,22 +6,22 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Uso: scripts/setup-worker.sh [--yes] [--help]
+Usage: scripts/setup-worker.sh [--yes] [--help]
 
-Crea y despliega tu Worker de orchestra-man paso a paso:
-  1. verifica Node y wrangler        5. aplica el esquema (migraciones)
-  2. inicia sesión en Cloudflare     6. despliega el Worker
-  3. pide los nombres                7. carga ADMIN_TOKEN y, opcional, GITHUB_TOKEN
-  4. crea o reutiliza la base D1     8. emite un token para esta máquina y configura el plugin
+Creates and deploys your orchestra-man Worker step by step:
+  1. checks Node and wrangler          5. applies the schema (migrations)
+  2. logs in to Cloudflare              6. deploys the Worker
+  3. asks for the names                 7. uploads ADMIN_TOKEN and, optionally, GITHUB_TOKEN
+  4. creates or reuses the D1 database  8. issues a token for this machine and configures the plugin
 
-Opciones:
-  -y, --yes    No pregunta: usa los valores por defecto (y las variables OM_* definidas)
-  -h, --help   Muestra esta ayuda
+Options:
+  -y, --yes    Do not ask: use the defaults (and any OM_* variables that are set)
+  -h, --help   Show this help
 
-Cualquier respuesta se puede dar por variable de entorno:
-  OM_WORKER_NAME, OM_DATABASE_NAME, OM_REUSE_DATABASE (s/n), OM_GENERATE_ADMIN_TOKEN (s/n),
-  OM_ADMIN_TOKEN, OM_GITHUB_TOKEN, OM_WORKER_URL, OM_MACHINE_NAME, OM_CONFIGURE_PLUGIN (s/n),
-  OM_LOCAL_CONFIG (por defecto worker/wrangler.local.jsonc), WRANGLER (comando wrangler a usar).
+Any answer can be given as an environment variable:
+  OM_WORKER_NAME, OM_DATABASE_NAME, OM_REUSE_DATABASE (y/n), OM_GENERATE_ADMIN_TOKEN (y/n),
+  OM_ADMIN_TOKEN, OM_GITHUB_TOKEN, OM_WORKER_URL, OM_MACHINE_NAME, OM_CONFIGURE_PLUGIN (y/n),
+  OM_LOCAL_CONFIG (default worker/wrangler.local.jsonc), WRANGLER (wrangler command to use).
 EOF
 }
 
@@ -62,7 +62,7 @@ wrangler() {
   fi
 }
 
-# ask VAR "Pregunta" [default]. A preset $VAR wins; --yes takes the default.
+# ask VAR "Question" [default]. A preset $VAR wins; --yes takes the default.
 ask() {
   local var="$1" prompt="$2" default="${3:-}" value=""
   if [ -n "${!var:-}" ]; then
@@ -78,11 +78,11 @@ ask() {
   printf -v "$var" '%s' "$value"
 }
 
-# ask_secret VAR "Pregunta". Input is never echoed nor printed.
+# ask_secret VAR "Question". Input is never echoed nor printed.
 ask_secret() {
   local var="$1" prompt="$2" value=""
   if [ -n "${!var:-}" ]; then
-    info "$prompt: (tomado de \$$var)"
+    info "$prompt: (taken from \$$var)"
     return
   fi
   if [ "$ASSUME_YES" != 1 ]; then
@@ -92,10 +92,10 @@ ask_secret() {
   printf -v "$var" '%s' "$value"
 }
 
-# confirm VAR "Pregunta" s|n. Returns 0 for yes.
+# confirm VAR "Question" y|n. Returns 0 for yes (also accepts s/S, for answers given in Spanish).
 confirm() {
-  local var="$1" prompt="$2" default="$3" answer="" hint="s/N"
-  [ "$default" = s ] && hint="S/n"
+  local var="$1" prompt="$2" default="$3" answer="" hint="y/N"
+  [ "$default" = y ] && hint="Y/n"
   if [ -n "${!var:-}" ]; then
     answer="${!var}"
   elif [ "$ASSUME_YES" = 1 ]; then
@@ -116,127 +116,127 @@ detect_os() {
   esac
 }
 
-printf '%sorchestra-man · configuración de tu Worker%s\n' "$BOLD" "$RESET"
-info "Crea el Worker con D1 en tu cuenta de Cloudflare, emite un token para esta máquina"
-info "y configura el plugin. Podés cortar con Ctrl-C en cualquier momento."
+printf '%sorchestra-man · set up your Worker%s\n' "$BOLD" "$RESET"
+info "Creates the Worker with D1 in your Cloudflare account, issues a token for this machine"
+info "and configures the plugin. You can stop at any time with Ctrl-C."
 
-step "1/8 Requisitos"
-command -v node >/dev/null 2>&1 || die "Necesitás Node.js 22.13 o superior: https://nodejs.org"
-lib node-version-ok || die "Tenés Node $(node -v); necesitás 22.13 o superior."
-ok "Node $(node -v) en $(detect_os)"
+step "1/8 Requirements"
+command -v node >/dev/null 2>&1 || die "Node.js 22.13 or later is required: https://nodejs.org"
+lib node-version-ok || die "You have Node $(node -v); 22.13 or later is required."
+ok "Node $(node -v) on $(detect_os)"
 if [ -z "${WRANGLER:-}" ] && [ ! -d node_modules/wrangler ]; then
-  info "Instalando dependencias del repo (npm ci)…"
-  npm ci --no-audit --no-fund >/dev/null || die "Falló npm ci."
+  info "Installing the repo dependencies (npm ci)…"
+  npm ci --no-audit --no-fund >/dev/null || die "npm ci failed."
 fi
-ok "wrangler disponible"
+ok "wrangler available"
 
-step "2/8 Cuenta de Cloudflare"
+step "2/8 Cloudflare account"
 if ! wrangler whoami --json >/dev/null 2>&1; then
-  info "No hay una sesión iniciada: se abre el navegador para autorizar a wrangler."
-  wrangler login || die "No se pudo iniciar sesión en Cloudflare."
-  wrangler whoami --json >/dev/null 2>&1 || die "Sigue sin haber sesión en Cloudflare."
+  info "No active session: opening the browser to authorize wrangler."
+  wrangler login || die "Could not log in to Cloudflare."
+  wrangler whoami --json >/dev/null 2>&1 || die "Still no Cloudflare session."
 fi
-ok "Sesión de Cloudflare activa"
+ok "Cloudflare session active"
 
-step "3/8 Nombres"
-ask OM_WORKER_NAME "Nombre del Worker (forma la URL)" "orchestra-man"
-lib valid-name "$OM_WORKER_NAME" || die "Nombre de Worker inválido: minúsculas, números y guiones, hasta 63."
-ask OM_DATABASE_NAME "Nombre de la base D1" "$OM_WORKER_NAME"
-lib valid-name "$OM_DATABASE_NAME" || die "Nombre de base inválido: minúsculas, números y guiones, hasta 63."
+step "3/8 Names"
+ask OM_WORKER_NAME "Worker name (part of the URL)" "orchestra-man"
+lib valid-name "$OM_WORKER_NAME" || die "Invalid Worker name: lowercase letters, digits and dashes, up to 63."
+ask OM_DATABASE_NAME "D1 database name" "$OM_WORKER_NAME"
+lib valid-name "$OM_DATABASE_NAME" || die "Invalid database name: lowercase letters, digits and dashes, up to 63."
 
-step "4/8 Base D1"
-list_json="$(wrangler d1 list --json)" || die "No se pudieron listar las bases D1."
+step "4/8 D1 database"
+list_json="$(wrangler d1 list --json)" || die "Could not list the D1 databases."
 database_id="$(printf '%s' "$list_json" | lib find-db "$OM_DATABASE_NAME")"
 if [ -n "$database_id" ]; then
-  confirm OM_REUSE_DATABASE "Ya existe la base \"$OM_DATABASE_NAME\" ($database_id). ¿La uso?" s ||
-    die "Elegí otro nombre de base y volvé a correr el script."
-  ok "Uso la base existente $database_id"
+  confirm OM_REUSE_DATABASE "The database \"$OM_DATABASE_NAME\" already exists ($database_id). Use it?" y ||
+    die "Choose another database name and run the script again."
+  ok "Using the existing database $database_id"
 else
-  info "Creando la base \"$OM_DATABASE_NAME\"…"
-  wrangler d1 create "$OM_DATABASE_NAME" >/dev/null || die "No se pudo crear la base."
+  info "Creating the database \"$OM_DATABASE_NAME\"…"
+  wrangler d1 create "$OM_DATABASE_NAME" >/dev/null || die "Could not create the database."
   database_id="$(wrangler d1 list --json | lib find-db "$OM_DATABASE_NAME")"
-  [ -n "$database_id" ] || die "La base se creó, pero no encuentro su id en 'wrangler d1 list'."
-  ok "Base creada: $database_id"
+  [ -n "$database_id" ] || die "The database was created, but its id is not in 'wrangler d1 list'."
+  ok "Database created: $database_id"
 fi
 lib write-config "$TEMPLATE" "$CONFIG" "$OM_WORKER_NAME" "$OM_DATABASE_NAME" "$database_id"
-ok "Configuración personal en $CONFIG (ignorada por git)"
+ok "Personal config in $CONFIG (ignored by git)"
 
-step "5/8 Esquema"
-info "Si wrangler pide confirmación para aplicar migraciones, respondé que sí."
-wrangler d1 migrations apply DB --remote -c "$CONFIG" || die "No se pudieron aplicar las migraciones."
-ok "Esquema aplicado"
+step "5/8 Schema"
+info "If wrangler asks for confirmation to apply migrations, answer yes."
+wrangler d1 migrations apply DB --remote -c "$CONFIG" || die "Could not apply the migrations."
+ok "Schema applied"
 
-step "6/8 Despliegue"
+step "6/8 Deploy"
 deploy_log="$(wrangler deploy -c "$CONFIG" 2>&1)" || {
   printf '%s\n' "$deploy_log" >&2
-  die "Falló el despliegue."
+  die "The deploy failed."
 }
 worker_url="$(printf '%s' "$deploy_log" | lib extract-url)"
 if [ -z "$worker_url" ]; then
-  warn "No encontré una URL *.workers.dev en la salida de wrangler."
-  ask OM_WORKER_URL "URL del Worker" ""
+  warn "No *.workers.dev URL found in the wrangler output."
+  ask OM_WORKER_URL "Worker URL" ""
   worker_url="$OM_WORKER_URL"
 fi
-[ -n "$worker_url" ] || die "Necesito la URL del Worker para continuar."
-ok "Desplegado en $worker_url"
+[ -n "$worker_url" ] || die "The Worker URL is needed to continue."
+ok "Deployed at $worker_url"
 
-step "7/8 Secretos"
+step "7/8 Secrets"
 admin_generated=0
 if [ -z "${OM_ADMIN_TOKEN:-}" ] &&
-  confirm OM_GENERATE_ADMIN_TOKEN "¿Genero un ADMIN_TOKEN aleatorio? (si el Worker ya tenía uno, lo reemplaza)" s; then
+  confirm OM_GENERATE_ADMIN_TOKEN "Generate a random ADMIN_TOKEN? (replaces the Worker's current one, if any)" y; then
   OM_ADMIN_TOKEN="$(lib random-hex)"
   admin_generated=1
 else
-  ask_secret OM_ADMIN_TOKEN "ADMIN_TOKEN (no se muestra)"
+  ask_secret OM_ADMIN_TOKEN "ADMIN_TOKEN (hidden)"
 fi
-[ "${#OM_ADMIN_TOKEN}" -ge 32 ] || die "El ADMIN_TOKEN debe tener al menos 32 caracteres."
+[ "${#OM_ADMIN_TOKEN}" -ge 32 ] || die "ADMIN_TOKEN must be at least 32 characters long."
 printf '%s' "$OM_ADMIN_TOKEN" | wrangler secret put ADMIN_TOKEN -c "$CONFIG" >/dev/null ||
-  die "No se pudo cargar ADMIN_TOKEN."
-ok "ADMIN_TOKEN cargado"
+  die "Could not upload ADMIN_TOKEN."
+ok "ADMIN_TOKEN uploaded"
 
-info "GITHUB_TOKEN es opcional: un PAT clásico con scope 'codespace' habilita orchestra_wake."
-ask_secret OM_GITHUB_TOKEN "GITHUB_TOKEN (Enter para omitir)"
+info "GITHUB_TOKEN is optional: a classic PAT with the 'codespace' scope enables orchestra_wake."
+ask_secret OM_GITHUB_TOKEN "GITHUB_TOKEN (Enter to skip)"
 if [ -n "$OM_GITHUB_TOKEN" ]; then
   printf '%s' "$OM_GITHUB_TOKEN" | wrangler secret put GITHUB_TOKEN -c "$CONFIG" >/dev/null ||
-    die "No se pudo cargar GITHUB_TOKEN."
-  ok "GITHUB_TOKEN cargado"
+    die "Could not upload GITHUB_TOKEN."
+  ok "GITHUB_TOKEN uploaded"
 else
-  info "Sin GITHUB_TOKEN: orchestra_wake no va a estar disponible (lo podés cargar después)."
+  info "No GITHUB_TOKEN: orchestra_wake will not be available (you can upload it later)."
 fi
 
-step "8/8 Token de esta máquina"
-info "Esperando a que el Worker responda…"
-lib health "$worker_url" >/dev/null || die "El Worker no responde en $worker_url/v1/health."
-ok "El Worker responde"
-ask OM_MACHINE_NAME "Nombre para identificar esta máquina" "$(hostname 2>/dev/null || echo maquina)"
+step "8/8 Token for this machine"
+info "Waiting for the Worker to respond…"
+lib health "$worker_url" >/dev/null || die "The Worker does not respond at $worker_url/v1/health."
+ok "The Worker responds"
+ask OM_MACHINE_NAME "Name to identify this machine" "$(hostname 2>/dev/null || echo machine)"
 machine_token="$(printf '%s' "$OM_ADMIN_TOKEN" | lib create-token "$worker_url" "$OM_MACHINE_NAME")" ||
-  die "No se pudo emitir el token de máquina."
-ok "Token emitido para \"$OM_MACHINE_NAME\""
+  die "Could not issue the machine token."
+ok "Token issued for \"$OM_MACHINE_NAME\""
 
 plugin_configured=0
-if confirm OM_CONFIGURE_PLUGIN "¿Configuro el plugin de esta máquina con este Worker?" s; then
+if confirm OM_CONFIGURE_PLUGIN "Configure the plugin on this machine with this Worker?" y; then
   node plugin/dist/cli.mjs configure --set mode=d1 --set "workerUrl=$worker_url" >/dev/null ||
-    die "No se pudo escribir la configuración del plugin."
+    die "Could not write the plugin configuration."
   printf '%s' "$machine_token" | node plugin/dist/cli.mjs configure --token-stdin >/dev/null ||
-    die "No se pudo guardar el token en la configuración del plugin."
+    die "Could not store the token in the plugin configuration."
   plugin_configured=1
-  ok "Plugin configurado (~/.config/orchestra-man/config.json, permisos 0600)"
+  ok "Plugin configured (~/.config/orchestra-man/config.json, mode 0600)"
 fi
 
-printf '\n%sListo.%s Tu Worker: %s\n' "$BOLD$GREEN" "$RESET" "$worker_url"
+printf '\n%sDone.%s Your Worker: %s\n' "$BOLD$GREEN" "$RESET" "$worker_url"
 if [ "$admin_generated" = 1 ]; then
-  printf '\n%sGuardá este ADMIN_TOKEN en tu gestor de contraseñas; no se vuelve a mostrar:%s\n    %s\n' \
+  printf '\n%sSave this ADMIN_TOKEN in your password manager; it is not shown again:%s\n    %s\n' \
     "$YELLOW" "$RESET" "$OM_ADMIN_TOKEN"
 fi
 if [ "$plugin_configured" = 0 ]; then
-  printf '\nToken de la máquina "%s" (se muestra una sola vez):\n    %s\n' "$OM_MACHINE_NAME" "$machine_token"
+  printf '\nToken for machine "%s" (shown only once):\n    %s\n' "$OM_MACHINE_NAME" "$machine_token"
 fi
 cat <<EOF
 
-Siguientes pasos:
-  - Reiniciá Claude Code: al abrir la sesión vas a ver el bloque "# orchestra-man".
-  - Otras máquinas: emití un token por cada una y configurá el plugin allí
-    (docs/guides/deploy-worker.md, "Emitir más tokens", y docs/guides/install-plugin.md).
-  - Usá el mismo maskSalt en todas tus máquinas (ver la guía de instalación).
-  - Actualizar el Worker más adelante: npm run worker:migrate:remote && npm run worker:deploy
+Next steps:
+  - Restart Claude Code: when the session opens you will see the "# orchestra-man" block.
+  - Other machines: issue a token for each one and configure the plugin there
+    (docs/guides/deploy-worker.md, "Issue more tokens", and docs/guides/install-plugin.md).
+  - Use the same maskSalt on all your machines (see the install guide).
+  - Update the Worker later: npm run worker:migrate:remote && npm run worker:deploy
 EOF
