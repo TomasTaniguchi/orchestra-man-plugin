@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.dev.vars
+*.db
+*.db-shm
+*.db-wal
+coverage/
+.DS_Store
