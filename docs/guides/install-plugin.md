@@ -66,7 +66,7 @@ Restart the Claude Code session and run:
 /orchestra-man:help
 ```
 
-If the "Estado" (status) section says "Todo en orden." (all good), it is ready. If not, each item tells you what to do. You will also see the `# orchestra-man` block when each session opens.
+If the "Status" section says "All good.", it is ready. If not, each item tells you what to do. You will also see the `# orchestra-man` block when each session opens.
 
 ## Permissions
 

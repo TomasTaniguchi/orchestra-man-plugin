@@ -31,7 +31,7 @@ If `orchestra_task_advance` returns `conflict` because another agent holds the l
 
 ## When a message arrives
 
-The plugin monitor notifies you with a `[orchestra-man] Mensaje ...` line. Then:
+The plugin monitor notifies you with a `[orchestra-man] … message from …` line. Then:
 
 - Read it in full with `orchestra_inbox`.
 - `investigate-request`: investigate only in your repo and reply with `orchestra_send` kind=investigate-result, same `taskId`, to the `fromRepo`.

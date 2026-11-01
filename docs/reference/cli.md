@@ -39,6 +39,6 @@ cli.mjs configure --show                           # shows the file (secrets sho
 
 Hooks receive the Claude Code event JSON on stdin and use `session_id`, `cwd` and, in `SubagentStop`, `last_assistant_message`.
 
-`session-start`, `post-compact`, `session-end`, `subagent-stop` and `watch` **never fail the session**. On error they print one line `orchestra-man: <motivo>` and exit with code 0. The monitor reports each distinct error only once, so a down backend is visible without flooding the conversation with warnings.
+`session-start`, `post-compact`, `session-end`, `subagent-stop` and `watch` **never fail the session**. On error they print one line `orchestra-man: <reason>` and exit with code 0. The monitor reports each distinct error only once, so a down backend is visible without flooding the conversation with warnings.
 
 On startup, the monitor marks the messages already in the inbox as seen, because `session-start` already showed them.

@@ -7,21 +7,21 @@ Examples with three repos that make up one product: `acme/api` (orders), `acme/b
 The start hook injects your repo's memory and a block like this into the context:
 
 ```
-## Memoria de sesiones anteriores (acme/api)
+## Memory from previous sessions (acme/api)
 
-### Recientes
-- [decision] Elegido D1 sobre KV (#4, decision/storage)
-- [bugfix] Corregido N+1 en OrderList (#3)
+### Recent
+- [decision] Chose D1 over KV (#4, decision/storage)
+- [bugfix] Fixed N+1 in OrderList (#3)
 
 # orchestra-man
-Agente acme/api#laptop (local) · backend d1 · memorias sincronizadas: 3.
+Agent acme/api#laptop (local) · backend d1 · memories synced: 3.
 
-## Otros repositorios
-- acme/billing: offline · cs-billing (codespace) · último checkpoint 2026-10-31T11:40:00.000Z en main@4f2a9c1
-- acme/web: online · laptop (local) · último checkpoint 2026-10-31T12:01:00.000Z en feat/cart@91be0d2
+## Other repositories
+- acme/billing: offline · cs-billing (codespace) · last checkpoint 2026-10-31T11:40:00.000Z on main@4f2a9c1
+- acme/web: online · laptop (local) · last checkpoint 2026-10-31T12:01:00.000Z on feat/cart@91be0d2
 
-## Bandeja (1 sin leer)
-- [investigate-request] de acme/web · tarea task_… · id msg_…: Tarea …: Mostrar el estado de pago en el checkout…
+## Inbox (1 unread)
+- [investigate-request] from acme/web · task task_… · id msg_…: Task …: Show the payment status at checkout…
 ```
 
 ## Help at any time
@@ -34,24 +34,24 @@ Agente acme/api#laptop (local) · backend d1 · memorias sincronizadas: 3.
 The diagnosis looks like this:
 
 ```
-# orchestra-man · diagnóstico
+# orchestra-man · diagnosis
 
-✓ Configuración: modo d1 · https://orchestra-man.tomas.workers.dev
-✓ Backend: responde (versión 0.2.0)
-✓ Agente: acme/api#laptop (local) · registrado
-✓ Memoria de este repo: 14 compartidas, 2 personales, 1 fijada, 6 sesiones · 3 cambios sin publicar (se publican en la próxima sincronización, o ya con orchestra_sync) · último cambio 2026-11-01T14:02:11.000Z
+✓ Configuration: d1 mode · https://orchestra-man.tomas.workers.dev
+✓ Backend: responding (version 0.2.0)
+✓ Agent: acme/api#laptop (local) · registered
+✓ This repo's memory: 14 shared, 2 personal, 1 pinned, 6 sessions · 3 unsynced changes (published on the next sync, or now with orchestra_sync) · last change 2026-11-01T14:02:11.000Z
 
-## Otros repositorios
-- acme/billing: offline · cs-billing (codespace) · último checkpoint 2026-11-01T09:40:00.000Z en main@4f2a9c1
-- acme/web: online · laptop (local) · último checkpoint 2026-11-01T13:58:00.000Z en feat/cart@91be0d2
+## Other repositories
+- acme/billing: offline · cs-billing (codespace) · last checkpoint 2026-11-01T09:40:00.000Z on main@4f2a9c1
+- acme/web: online · laptop (local) · last checkpoint 2026-11-01T13:58:00.000Z on feat/cart@91be0d2
 
-## Bandeja: 1 sin leer (orchestra_inbox para verlos)
+## Inbox: 1 unread (see them with orchestra_inbox)
 
-## Estado
-Todo en orden.
+## Status
+All good.
 ```
 
-If something fails, the "Estado" (status) section says what to do, for example "El token fue rechazado: emití uno nuevo…" (the token was rejected: issue a new one) or "Actualizá el Worker…" (update the Worker).
+If something fails, the "Status" section says what to do, for example "The token was rejected: issue a new one…" or "Update the Worker…".
 
 ## 1. Your repo's memory
 
@@ -92,7 +92,7 @@ At any time: "cancel the task" or "what's the status of task task_…?" (`orches
 The monitor writes a line like:
 
 ```
-[orchestra-man] Mensaje investigate-request de acme/api (tarea task_…), id msg_…: Tarea …: Link orders to invoices…
+[orchestra-man] investigate-request message from acme/api (task task_…), id msg_…: Task …: Link orders to invoices…
 ```
 
 Claude reads it, investigates your repo and replies. For an `edit-request` it asks you before editing, even if the user of the other repo already approved it.

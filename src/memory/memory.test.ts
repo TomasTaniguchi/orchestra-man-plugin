@@ -167,7 +167,7 @@ describe("search, pins, timeline, context", () => {
     const view = { project: P, sessions: s.recentSessions(P), pinned: s.recent(P, 20, true), recent: s.recent(P, 20) };
     expect(formatMemoryContext(view)).toMatchSnapshot();
     expect(formatMemoryContext({ ...view, compact: true })).not.toContain("Eager loading");
-    expect(formatMemoryContext({ project: P, sessions: [], pinned: [], recent: [] })).toContain("Sin memorias todavía");
+    expect(formatMemoryContext({ project: P, sessions: [], pinned: [], recent: [] })).toContain("No memories yet");
     expect(limitBytes("ñandú ñandú", 10)).toMatch(/\[truncated\]$/);
   });
 });

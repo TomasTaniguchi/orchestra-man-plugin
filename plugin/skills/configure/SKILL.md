@@ -46,6 +46,6 @@ The masking salt (`maskSalt`) is generated automatically the first time. For the
 
 ## 5. Verify
 
-Call the `orchestra_status` tool (or run `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" doctor`) and show the diagnosis to the user. If the "Estado" section says "Todo en orden." (all good), it is ready. If not, resolve each item it lists.
+Call the `orchestra_status` tool (or run `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" doctor`) and show the diagnosis to the user. If the "Status" section says "All good.", it is ready. If not, resolve each item it lists.
 
 Remind the user to restart the Claude Code session so the start hook and the monitor pick up the config, and that `/orchestra-man:help` shows this diagnosis and a guide with examples whenever they need it.

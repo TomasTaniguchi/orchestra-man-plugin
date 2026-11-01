@@ -66,12 +66,12 @@ OM_WORKER_NAME=orchestra-man OM_MACHINE_NAME=laptop-tomas bash scripts/setup-wor
 | Variable | Answer |
 | --- | --- |
 | `OM_WORKER_NAME`, `OM_DATABASE_NAME` | Names |
-| `OM_REUSE_DATABASE` | `s` or `n` |
-| `OM_GENERATE_ADMIN_TOKEN` | `s` or `n` |
+| `OM_REUSE_DATABASE` | `y` or `n` |
+| `OM_GENERATE_ADMIN_TOKEN` | `y` or `n` |
 | `OM_ADMIN_TOKEN`, `OM_GITHUB_TOKEN` | Secrets (avoid leaving them in your shell history) |
 | `OM_WORKER_URL` | URL, if it is not detected |
 | `OM_MACHINE_NAME` | Name of this machine's token |
-| `OM_CONFIGURE_PLUGIN` | `s` or `n` |
+| `OM_CONFIGURE_PLUGIN` | `y` or `n` |
 | `OM_LOCAL_CONFIG` | Path to the personal config (default `worker/wrangler.local.jsonc`) |
 
 `bash scripts/setup-worker.sh --help` shows the summary.

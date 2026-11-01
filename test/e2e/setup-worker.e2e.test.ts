@@ -106,7 +106,7 @@ describe("scripts/setup-worker.sh", () => {
 
     // Secrets the user typed or that are already stored are never echoed.
     for (const secret of [ADMIN, "ghp_codespaces", plugin.token]) expect(run.stdout).not.toContain(secret);
-    expect(run.stdout).toContain(`Listo. Tu Worker: ${workerUrl}`);
+    expect(run.stdout).toContain(`Done. Your Worker: ${workerUrl}`);
   }, 60_000);
 
   it("logs in, reuses an existing database, generates the admin token and prints the machine token once", async () => {
@@ -124,7 +124,7 @@ describe("scripts/setup-worker.sh", () => {
 
     // The generated admin token and the machine token are shown exactly once, for the user to save.
     expect(run.stdout.split(state.secrets.ADMIN_TOKEN as string)).toHaveLength(2);
-    const machineToken = /Token de la máquina "spare".*\n\s+(om_\S+)/.exec(run.stdout)?.[1];
+    const machineToken = /Token for machine "spare".*\n\s+(om_\S+)/.exec(run.stdout)?.[1];
     expect(machineToken).toBeDefined();
     expect((await fetch(`${workerUrl}/v1/agents`, { headers: { authorization: `Bearer ${machineToken}` } })).status).toBe(200);
   }, 60_000);
@@ -132,18 +132,18 @@ describe("scripts/setup-worker.sh", () => {
   it("rejects invalid names and refuses to reuse a database the user declined", async () => {
     const invalid = await runSetup({}, { OM_WORKER_NAME: "Not_Valid" });
     expect(invalid.code).toBe(1);
-    expect(invalid.stderr).toMatch(/Nombre de Worker inválido/);
+    expect(invalid.stderr).toMatch(/Invalid Worker name/);
 
     const declined = await runSetup({ databases: [{ uuid: "x", name: "orchestra-man" }] }, { OM_REUSE_DATABASE: "n" });
     expect(declined.code).toBe(1);
-    expect(declined.stderr).toMatch(/Elegí otro nombre de base/);
+    expect(declined.stderr).toMatch(/Choose another database name/);
     expect(readState().deploys).toEqual([]);
   }, 60_000);
 
   it("prints usage", async () => {
     const help = await runSetup({}, {}, ["--help"]);
     expect(help.code).toBe(0);
-    expect(help.stdout).toMatch(/^Uso: scripts\/setup-worker.sh/);
+    expect(help.stdout).toMatch(/^Usage: scripts\/setup-worker.sh/);
     expect((await runSetup({}, {}, ["--nope"])).code).toBe(2);
   });
 });

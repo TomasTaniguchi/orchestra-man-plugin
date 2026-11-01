@@ -2,8 +2,8 @@
 
 | Symptom | Likely cause | Solution |
 | --- | --- | --- |
-| `! Backend: responde con la versión X; el plugin espera Y` | The Worker is on a different version | In the plugin repo: `git pull && npm ci && npm run worker:migrate:remote && npm run worker:deploy` |
-| `! Agente: … el repo no tiene remoto git` | Clone without `origin` | `git remote add origin <url>`: otherwise the others do not recognize it as `owner/name` |
+| `! Backend: responding with version X; the plugin expects Y` | The Worker is on a different version | In the plugin repo: `git pull && npm ci && npm run worker:migrate:remote && npm run worker:deploy` |
+| `! Agent: … the repo has no git remote` | Clone without `origin` | `git remote add origin <url>`: otherwise the others do not recognize it as `owner/name` |
 | When the session opens: `orchestra-man is not configured correctly (maskSalt …)` | No configuration file or variables | `/orchestra-man:configure` |
 | `mode is d1 but workerUrl or token is missing` | D1 mode without URL or token | `configure --set workerUrl=…` and `configure --token-stdin` |
 | `invalid or revoked token` (`unauthorized`) | Token copied incorrectly or revoked | Issue a new one ([deploy-worker.md](guides/deploy-worker.md#issue-more-tokens)) |
@@ -11,7 +11,7 @@
 | Another repo cannot find a just-saved memory | It has not synced yet | It is published on the next sync (up to `checkpointIntervalSec`), or instantly with `orchestra_sync` |
 | A memory does not show up in `orchestra_recall` | It is `personal`, deleted, or searched from the same repo before syncing | `orchestra_search` searches this repo's local memory, including personal ones |
 | `memory #N not found in owner/repo` | The id belongs to another repo or the memory was deleted | Ids are local to each machine; search again |
-| `Backend compartido no disponible` at startup | Worker down or no network | Local memory keeps working; it syncs when the backend is back |
+| `Shared backend unavailable` at startup | Worker down or no network | Local memory keeps working; it syncs when the backend is back |
 | The other repo shows as `offline` even though it is open | Its monitor is not running or it has no configuration | In that session, run `/orchestra-man:configure` and restart. `agentStaleMinutes` sets the threshold |
 | New-message notifications do not arrive | The monitor did not start (monitors do not run in `-p` mode) | Restart the interactive session; check `/tasks` |
 | `task … is leased by … until …` (`conflict`) | Another agent is orchestrating the task | Wait for the lease to expire (10 min) or continue from that machine |

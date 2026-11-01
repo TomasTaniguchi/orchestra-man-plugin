@@ -30,7 +30,7 @@ export interface Report {
   staleMinutes: number;
 }
 
-const CONFIGURE = "Corré /orchestra-man:configure (o `npm run worker:setup` en el repo del plugin para desplegar tu Worker).";
+const CONFIGURE = "Run /orchestra-man:configure (or `npm run worker:setup` in the plugin repo to deploy your Worker).";
 
 /** The report when the configuration cannot even be loaded. */
 export function configErrorReport(error: unknown, configFile: string, now: Date): Report {
@@ -38,8 +38,8 @@ export function configErrorReport(error: unknown, configFile: string, now: Date)
     checks: [
       {
         status: "error",
-        label: "Configuración",
-        detail: `${(error as Error).message.replace(/ Run \/orchestra-man:configure\.$/, "")} (archivo: ${configFile})`,
+        label: "Configuration",
+        detail: `${(error as Error).message.replace(/ Run \/orchestra-man:configure\.$/, "")} (file: ${configFile})`,
         fix: CONFIGURE,
       },
     ],
@@ -54,9 +54,9 @@ export function configErrorReport(error: unknown, configFile: string, now: Date)
 
 function backendFix(error: unknown, mode: string): string {
   const code = error instanceof OrchestraError ? error.code : "internal";
-  if (code === "unauthorized") return "El token fue rechazado: emití uno nuevo (docs/guides/deploy-worker.md, \"Emitir más tokens\") y cargalo con `configure --token-stdin`.";
-  if (code === "unavailable" && mode === "d1") return "Revisá la URL con `curl <workerUrl>/v1/health` y tu conexión. La memoria local sigue funcionando y se publica cuando vuelva.";
-  return "Revisá `cli.mjs status` y docs/troubleshooting.md.";
+  if (code === "unauthorized") return "The token was rejected: issue a new one (docs/guides/deploy-worker.md, \"Issue more tokens\") and store it with `configure --token-stdin`.";
+  if (code === "unavailable" && mode === "d1") return "Check the URL with `curl <workerUrl>/v1/health` and your connection. Local memory keeps working and is published when it is back.";
+  return "Check `cli.mjs status` and docs/troubleshooting.md.";
 }
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -64,15 +64,15 @@ const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : 
 export const memoryDetail = (m: MemoryStats): string =>
   [
     [
-      count(m.project, "compartida", "compartidas"),
-      count(m.personal, "personal", "personales"),
-      count(m.pinned, "fijada", "fijadas"),
-      count(m.sessions, "sesión", "sesiones"),
+      count(m.project, "shared", "shared"),
+      count(m.personal, "personal", "personal"),
+      count(m.pinned, "pinned", "pinned"),
+      count(m.sessions, "session", "sessions"),
     ].join(", "),
     m.pendingSync
-      ? `${count(m.pendingSync, "cambio sin publicar", "cambios sin publicar")} (se publican en la próxima sincronización, o ya con orchestra_sync)`
-      : "todo publicado",
-    m.lastChangeAt ? `último cambio ${m.lastChangeAt}` : "todavía sin memorias",
+      ? `${count(m.pendingSync, "unsynced change", "unsynced changes")} (published on the next sync, or now with orchestra_sync)`
+      : "all synced",
+    m.lastChangeAt ? `last change ${m.lastChangeAt}` : "no memories yet",
   ].join(" · ");
 
 export async function diagnose(rt: Runtime): Promise<Report> {
@@ -80,8 +80,8 @@ export async function diagnose(rt: Runtime): Promise<Report> {
   const checks: Check[] = [
     {
       status: "ok",
-      label: "Configuración",
-      detail: rt.config.mode === "d1" ? `modo d1 · ${rt.config.workerUrl}` : `modo local · ${rt.config.localDbPath}`,
+      label: "Configuration",
+      detail: rt.config.mode === "d1" ? `d1 mode · ${rt.config.workerUrl}` : `local mode · ${rt.config.localDbPath}`,
     },
   ];
   const report: Report = {
@@ -100,8 +100,8 @@ export async function diagnose(rt: Runtime): Promise<Report> {
     checks.push({
       status: sameVersion ? "ok" : "warn",
       label: "Backend",
-      detail: sameVersion ? `responde (versión ${health.version})` : `responde con la versión ${health.version}; el plugin espera ${SERVICE_VERSION}`,
-      ...(sameVersion ? {} : { fix: "Actualizá el Worker: en el repo del plugin, `git pull && npm ci && npm run worker:migrate:remote && npm run worker:deploy`." }),
+      detail: sameVersion ? `responding (version ${health.version})` : `responding with version ${health.version}; the plugin expects ${SERVICE_VERSION}`,
+      ...(sameVersion ? {} : { fix: "Update the Worker: in the plugin repo, `git pull && npm ci && npm run worker:migrate:remote && npm run worker:deploy`." }),
     });
     [report.agents, report.checkpoints, report.inboxUnread] = await Promise.all([
       rt.remote.listAgents(),
@@ -117,37 +117,37 @@ export async function diagnose(rt: Runtime): Promise<Report> {
     agent.repo.startsWith("local/")
       ? {
           status: "warn",
-          label: "Agente",
-          detail: `${agent.id} (${agent.kind}): el repo no tiene remoto git, así que se identifica por el nombre de la carpeta`,
-          fix: "Agregá el remoto (`git remote add origin <url>`) para que los demás repos lo reconozcan como owner/name.",
+          label: "Agent",
+          detail: `${agent.id} (${agent.kind}): the repo has no git remote, so it is identified by its folder name`,
+          fix: "Add the remote (`git remote add origin <url>`) so the other repos recognize it as owner/name.",
         }
       : {
           status: "ok",
-          label: "Agente",
-          detail: `${agent.id} (${agent.kind})${registered && isOnline(registered, report.now, report.staleMinutes) ? " · registrado" : " · se registra al abrir la sesión o con orchestra_sync"}`,
+          label: "Agent",
+          detail: `${agent.id} (${agent.kind})${registered && isOnline(registered, report.now, report.staleMinutes) ? " · registered" : " · registers when the session opens or with orchestra_sync"}`,
         },
   );
 
-  checks.push({ status: "ok", label: "Memoria de este repo", detail: memoryDetail(rt.store.stats(agent.repo, rt.syncTarget)) });
+  checks.push({ status: "ok", label: "This repo's memory", detail: memoryDetail(rt.store.stats(agent.repo, rt.syncTarget)) });
   return report;
 }
 
 const ICON: Record<CheckStatus, string> = { ok: "✓", warn: "!", error: "✗" };
 
 export function formatReport(report: Report): string {
-  const lines = ["# orchestra-man · diagnóstico", ""];
+  const lines = ["# orchestra-man · diagnosis", ""];
   for (const c of report.checks) lines.push(`${ICON[c.status]} ${c.label}: ${c.detail}`);
 
   if (report.ownRepo && report.inboxUnread !== null) {
     const repos = formatRepoLines({ ...report, ownRepo: report.ownRepo });
-    lines.push("", "## Otros repositorios", ...(repos.length ? repos : ["- ninguno registrado todavía"]));
-    lines.push("", `## Bandeja: ${report.inboxUnread} sin leer${report.inboxUnread ? " (orchestra_inbox para verlos)" : ""}`);
+    lines.push("", "## Other repositories", ...(repos.length ? repos : ["- none registered yet"]));
+    lines.push("", `## Inbox: ${report.inboxUnread} unread${report.inboxUnread ? " (see them with orchestra_inbox)" : ""}`);
   }
 
   const problems = report.checks.filter((c) => c.status !== "ok");
-  lines.push("", "## Estado");
-  if (!problems.length) lines.push("Todo en orden.");
-  for (const p of problems) lines.push(`- ${ICON[p.status]} ${p.label}: ${p.fix ?? "revisá docs/troubleshooting.md"}`);
+  lines.push("", "## Status");
+  if (!problems.length) lines.push("All good.");
+  for (const p of problems) lines.push(`- ${ICON[p.status]} ${p.label}: ${p.fix ?? "see docs/troubleshooting.md"}`);
   return lines.join("\n");
 }
 

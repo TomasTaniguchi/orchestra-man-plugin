@@ -1,39 +1,39 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`doctor > explains a missing configuration (snapshot) 1`] = `
-"# orchestra-man · diagnóstico
+"# orchestra-man · diagnosis
 
-✗ Configuración: orchestra-man is not configured correctly (maskSalt: Invalid input). (archivo: /home/me/.config/orchestra-man/config.json)
+✗ Configuration: orchestra-man is not configured correctly (maskSalt: Invalid input). (file: /home/me/.config/orchestra-man/config.json)
 
-## Estado
-- ✗ Configuración: Corré /orchestra-man:configure (o \`npm run worker:setup\` en el repo del plugin para desplegar tu Worker)."
+## Status
+- ✗ Configuration: Run /orchestra-man:configure (or \`npm run worker:setup\` in the plugin repo to deploy your Worker)."
 `;
 
 exports[`doctor > explains an unreachable backend and keeps the local memory facts 1`] = `
-"# orchestra-man · diagnóstico
+"# orchestra-man · diagnosis
 
-✓ Configuración: modo d1 · https://w.dev
+✓ Configuration: d1 mode · https://w.dev
 ✗ Backend: cannot reach https://w.dev: fetch failed
-✓ Agente: acme/api#laptop (local) · se registra al abrir la sesión o con orchestra_sync
-✓ Memoria de este repo: 1 compartida, 1 personal, 1 fijada, 1 sesión · 2 cambios sin publicar (se publican en la próxima sincronización, o ya con orchestra_sync) · último cambio 2026-10-31T12:00:00.000Z
+✓ Agent: acme/api#laptop (local) · registers when the session opens or with orchestra_sync
+✓ This repo's memory: 1 shared, 1 personal, 1 pinned, 1 session · 2 unsynced changes (published on the next sync, or now with orchestra_sync) · last change 2026-10-31T12:00:00.000Z
 
-## Estado
-- ✗ Backend: Revisá la URL con \`curl <workerUrl>/v1/health\` y tu conexión. La memoria local sigue funcionando y se publica cuando vuelva."
+## Status
+- ✗ Backend: Check the URL with \`curl <workerUrl>/v1/health\` and your connection. Local memory keeps working and is published when it is back."
 `;
 
 exports[`doctor > reports a healthy setup (snapshot) 1`] = `
-"# orchestra-man · diagnóstico
+"# orchestra-man · diagnosis
 
-✓ Configuración: modo local · :memory:
-✓ Backend: responde (versión 0.2.0)
-✓ Agente: acme/api#laptop (local) · registrado
-✓ Memoria de este repo: 1 compartida, 1 personal, 1 fijada, 1 sesión · 2 cambios sin publicar (se publican en la próxima sincronización, o ya con orchestra_sync) · último cambio 2026-10-31T12:00:00.000Z
+✓ Configuration: local mode · :memory:
+✓ Backend: responding (version 0.2.0)
+✓ Agent: acme/api#laptop (local) · registered
+✓ This repo's memory: 1 shared, 1 personal, 1 pinned, 1 session · 2 unsynced changes (published on the next sync, or now with orchestra_sync) · last change 2026-10-31T12:00:00.000Z
 
-## Otros repositorios
-- acme/billing: online · cs-billing (codespace) · último checkpoint 2026-10-31T12:00:00.000Z en main@abcdef1
+## Other repositories
+- acme/billing: online · cs-billing (codespace) · last checkpoint 2026-10-31T12:00:00.000Z on main@abcdef1
 
-## Bandeja: 1 sin leer (orchestra_inbox para verlos)
+## Inbox: 1 unread (see them with orchestra_inbox)
 
-## Estado
-Todo en orden."
+## Status
+All good."
 `;

@@ -99,21 +99,21 @@ The manual steps, how to issue tokens for other machines, D1 limits and backups 
 It shows the plugin's state on this machine and, if something fails, what to do:
 
 ```
-# orchestra-man · diagnóstico
+# orchestra-man · diagnosis
 
-✓ Configuración: modo d1 · https://orchestra-man.tomas.workers.dev
-✓ Backend: responde (versión 0.2.0)
-✓ Agente: acme/api#laptop (local) · registrado
-✓ Memoria de este repo: 14 compartidas, 2 personales, 1 fijada, 6 sesiones · 3 cambios sin publicar (se publican en la próxima sincronización, o ya con orchestra_sync) · último cambio 2026-11-01T14:02:11.000Z
+✓ Configuration: d1 mode · https://orchestra-man.tomas.workers.dev
+✓ Backend: responding (version 0.2.0)
+✓ Agent: acme/api#laptop (local) · registered
+✓ This repo's memory: 14 shared, 2 personal, 1 pinned, 6 sessions · 3 unsynced changes (published on the next sync, or now with orchestra_sync) · last change 2026-11-01T14:02:11.000Z
 
-## Otros repositorios
-- acme/billing: offline · cs-billing (codespace) · último checkpoint 2026-11-01T09:40:00.000Z en main@4f2a9c1
-- acme/web: online · laptop (local) · último checkpoint 2026-11-01T13:58:00.000Z en feat/cart@91be0d2
+## Other repositories
+- acme/billing: offline · cs-billing (codespace) · last checkpoint 2026-11-01T09:40:00.000Z on main@4f2a9c1
+- acme/web: online · laptop (local) · last checkpoint 2026-11-01T13:58:00.000Z on feat/cart@91be0d2
 
-## Bandeja: 1 sin leer (orchestra_inbox para verlos)
+## Inbox: 1 unread (see them with orchestra_inbox)
 
-## Estado
-Todo en orden.
+## Status
+All good.
 ```
 
 Then it shows a short guide with examples of what to ask Claude. It only runs when you invoke it, so it takes no context in your conversations. From the terminal, `node <plugin-path>/dist/cli.mjs doctor` gives the same diagnosis.
@@ -141,7 +141,7 @@ Claude uses `orchestra_recall` on the `acme/billing` memory and tells you the da
 3. It shows you a plan per repo and **waits for your decision**.
 4. If you approve, each repo edits its part on a branch, verifies and opens a PR.
 
-**When a request reaches you** from another repo, the monitor notifies you with a `[orchestra-man] Mensaje ...` line. Claude reads it, investigates or edits (and in that case asks for your confirmation here too) and replies.
+**When a request reaches you** from another repo, the monitor notifies you with a `[orchestra-man] … message from …` line. Claude reads it, investigates or edits (and in that case asks for your confirmation here too) and replies.
 
 More examples in [docs/guides/usage.md](docs/guides/usage.md) and in `/orchestra-man:help`. The 23 MCP tools are listed in [docs/reference/mcp-tools.md](docs/reference/mcp-tools.md).
 
