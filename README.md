@@ -176,3 +176,16 @@ Este repo está pensado para trabajar con agentes: empezá por [AGENTS.md](AGENT
 ## Licencia
 
 MIT
+
+## Agradecimientos
+
+Gracias a [Alan Buscaglia (Gentleman Programming)](https://github.com/Alan-TheGentleman) por crear [Engram](https://github.com/Gentleman-Programming/engram). La memoria de orchestra-man toma sus conceptos:
+- memoria curada por el agente;
+- actualización por tema con historial;
+- deduplicación;
+- `<private>`;
+- recuperación tras compactación;
+- captura pasiva de aprendizajes;
+- su protocolo de memoria.
+
+Varias funciones de `src/memory/text.ts` están portadas de su código, que se distribuye bajo licencia MIT.
