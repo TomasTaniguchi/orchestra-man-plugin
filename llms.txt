@@ -1,0 +1,33 @@
+# orchestra-man
+
+> Claude Code plugin for multi-agent code generation and correction across repositories. Each repo's Claude Code shares masked memory (replicated from Engram), checkpoints, messages and lease-guarded tasks through a personal Cloudflare Worker + D1 (or local SQLite). LangGraph orders the steps (investigate, plan, approve, edit, verify, propose); Claude Code does the reasoning. Documentation is in Spanish; code and comments in English.
+
+## Start here
+
+- [AGENTS.md](AGENTS.md): rules, code map and commands for agents working on this repo
+- [README.md](README.md): what it solves, install, Worker setup, usage
+- [docs/README.md](docs/README.md): documentation index
+
+## Architecture
+
+- [docs/architecture/overview.md](docs/architecture/overview.md): components, ports and adapters
+- [docs/architecture/orchestration.md](docs/architecture/orchestration.md): task graph, leases, rotation
+- [docs/architecture/memory-and-sync.md](docs/architecture/memory-and-sync.md): Engram replication and checkpoints
+- [docs/adr/README.md](docs/adr/README.md): architecture decisions
+
+## Reference
+
+- [docs/api/openapi.yaml](docs/api/openapi.yaml): Worker HTTP contract
+- [docs/reference/mcp-tools.md](docs/reference/mcp-tools.md): MCP tools
+- [docs/reference/cli.md](docs/reference/cli.md): CLI
+- [docs/reference/configuration.md](docs/reference/configuration.md): configuration
+- [docs/reference/data-model.md](docs/reference/data-model.md): tables and concurrency
+- [docs/reference/masking.md](docs/reference/masking.md): redaction rules
+- [docs/reference/d1-limits.md](docs/reference/d1-limits.md): D1 limits
+
+## Guides
+
+- [docs/guides/deploy-worker.md](docs/guides/deploy-worker.md)
+- [docs/guides/install-plugin.md](docs/guides/install-plugin.md)
+- [docs/guides/usage.md](docs/guides/usage.md)
+- [docs/guides/development.md](docs/guides/development.md)

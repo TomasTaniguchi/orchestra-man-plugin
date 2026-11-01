@@ -1,56 +1,62 @@
 # AGENTS.md
 
-Entry point for AI agents working **on this repository** (not for agents using the plugin; those read `plugin/skills/`).
+Punto de entrada para agentes de IA que trabajan **sobre este repositorio**. Los agentes que **usan** el plugin leen `plugin/skills/`.
 
-## What this repo is
+## Qué es
 
-`orchestra-man` is a Claude Code plugin. Several Claude Code sessions, one per repository (codespace or local clone), share memory and coordinate tasks through a personal Cloudflare Worker backed by D1, or through a local SQLite file. LangGraph orchestrates the task flow; Claude Code does all reasoning. Start with `docs/README.md`.
+`orchestra-man` es un plugin de Claude Code. Varias sesiones de Claude Code, una por repositorio (codespace o clon local), comparten memoria y coordinan tareas a través de un Worker de Cloudflare personal con D1, o de un archivo SQLite local. LangGraph ordena el flujo de cada tarea; Claude Code hace todo el razonamiento. Índice de documentación: `docs/README.md`.
 
-## Commands
+## Comandos
 
-| Goal | Command |
+| Objetivo | Comando |
 | --- | --- |
-| Install | `npm ci` |
-| Type check | `npm run typecheck` |
-| All tests | `npm test` |
-| Unit tests only | `npm run test:unit` |
-| End-to-end tests | `npm run test:e2e` |
-| Update snapshots (review the diff!) | `npm run test:update` |
-| Build the plugin bundle (`plugin/dist`) | `npm run build` |
-| Everything CI runs | `npm run check` |
+| Instalar | `npm ci` |
+| Typecheck | `npm run typecheck` |
+| Todos los tests | `npm test` |
+| Solo unitarios | `npm run test:unit` |
+| Solo end-to-end | `npm run test:e2e` |
+| Actualizar snapshots (¡revisá el diff!) | `npm run test:update` |
+| Generar el bundle (`plugin/dist`) | `npm run build` |
+| Todo lo que corre CI | `npm run check` |
 
-`plugin/dist/` is committed: users install the plugin without a build step. **Run `npm run build` and commit `plugin/dist/` whenever `src/` changes.**
+`plugin/dist/` está versionado: los usuarios instalan el plugin sin build. **Si cambiás `src/`, corré `npm run build` y commiteá `plugin/dist/`.** CI falla si el bundle quedó desactualizado.
 
-## Map
+## Mapa
 
-| Path | Owns |
+| Ruta | Responsabilidad |
 | --- | --- |
-| `src/core/contract.ts` | The API contract (zod). Single source of truth for every payload |
-| `src/core/db.ts` | `SqlDatabase`: the minimal D1-shaped interface all data code depends on |
-| `src/core/repositories/` | One file per table. Atomic SQL functions, no HTTP, no business rules |
-| `src/core/service.ts` | `OrchestraService`: business rules composed from repositories (leases, versions, batching) |
-| `src/core/remote.ts` | `Remote`: the port the plugin talks to. Implemented by HTTP and local adapters |
-| `src/masking/` | Redaction rules and the `maskedRemote` decorator |
-| `src/worker/` | Cloudflare Worker: routing, auth, wake, cron maintenance |
-| `src/orchestration/` | LangGraph task graph. Nodes are pure functions plus injected tools |
-| `src/plugin/` | Plugin runtime: config, identity, Engram client, sync, CLI (hooks/monitor) and MCP server |
-| `migrations/` | D1/SQLite schema. Used by wrangler **and** by local mode |
-| `plugin/` | The installable Claude Code plugin (manifest, hooks, monitor, skills, bundled `dist/`) |
-| `docs/api/openapi.yaml` | Human-readable contract. `test/e2e/contract.test.ts` keeps it in sync with the router |
+| `src/core/contract.ts` | El contrato de la API (zod). Fuente única de verdad de cada payload |
+| `src/core/routes.ts` | Rutas HTTP. Las usan el router del Worker y el cliente `httpRemote` |
+| `src/core/db.ts` | `SqlDatabase`: interfaz mínima con forma de D1 de la que depende todo el código de datos |
+| `src/core/repositories/` | Un archivo por tabla. Funciones SQL atómicas, sin HTTP ni reglas de negocio |
+| `src/core/service.ts` | `OrchestraService`: reglas de negocio (validación, leases, versiones, lotes) |
+| `src/core/remote.ts` | `Remote`: el puerto que usa el plugin. Lo implementan el servicio local y `httpRemote` |
+| `src/masking/` | Reglas de enmascarado y el decorador `maskedRemote` |
+| `src/worker/` | Worker: router, auth, wake de codespaces, mantenimiento por cron |
+| `src/orchestration/` | Grafo de LangGraph. Nodos puros más herramientas inyectadas |
+| `src/plugin/` | Runtime del plugin: config, identidad, Engram, sync, casos de uso, MCP y CLI |
+| `migrations/` | Esquema. Lo usan wrangler **y** el modo local |
+| `plugin/` | El plugin instalable (manifest, hooks, monitor, skills y `dist/`) |
+| `docs/api/openapi.yaml` | Contrato legible. `test/e2e/contract.test.ts` lo mantiene sincronizado con las rutas |
 
-## Rules
+## Reglas
 
-- **Contract first.** Change `src/core/contract.ts` and `docs/api/openapi.yaml` before the handler. The contract test fails if routes and spec drift.
-- **One implementation of each rule.** Data logic lives in `src/core`; the Worker and local mode only adapt it. Never copy SQL into `src/worker` or `src/plugin`.
-- **Atomic, injected, testable.** Functions take their dependencies (`db`, `clock`, `ids`, `fetch`) as arguments. No module-level singletons, no `Date.now()` outside `src/core/clock.ts`.
-- **Mask at the boundary.** Anything leaving the machine goes through `maskedRemote`. Do not call a `Remote` unmasked from plugin code.
-- **Respect D1 limits** (`docs/reference/d1-limits.md`): ≤100 bound parameters per statement, one `batch()` per request, ≤50 queries per Worker invocation on the Free plan.
-- **Snapshots are assertions.** When a snapshot changes, explain why in the commit message.
-- **Never edit another repository without approval.** The `orchestra_task_approve` MCP tool is the human gate; keep it a separate tool so Claude Code prompts for permission.
+- **Contrato primero.** Cambiá `src/core/contract.ts`, `src/core/routes.ts` y `docs/api/openapi.yaml` antes del handler. El test de contrato falla si divergen.
+- **Una sola implementación de cada regla.** La lógica de datos vive en `src/core`; el Worker y el modo local solo la adaptan. Nunca copies SQL en `src/worker` ni en `src/plugin`.
+- **Funciones atómicas, inyectadas y testeables.** Las dependencias (`db`, `clock`, `ids`, `fetch`, `exec`) entran por parámetro. Nada de singletons ni `Date.now()` fuera de `src/core/clock.ts`.
+- **Enmascarar en el borde.** Todo lo que sale de la máquina pasa por `maskedRemote`. El código del plugin nunca usa un `Remote` sin enmascarar; `createRuntime` es el único lugar que arma uno.
+- **Respetar los límites de D1** (`docs/reference/d1-limits.md`): como máximo 100 parámetros por sentencia, un `batch()` por petición y 50 consultas por invocación en el plan Free.
+- **Los snapshots son aserciones.** Si un snapshot cambia, explicá por qué en el commit.
+- **Nunca editar otro repositorio sin autorización.** `orchestra_task_approve` es la puerta humana; tiene que seguir siendo una herramienta aparte para que Claude Code pida permiso.
+- **Hooks y monitor nunca rompen la sesión.** Fallan con una línea explicativa y código 0.
 
-## Where to read next
+## Recetas
 
-- `docs/architecture/overview.md`: components and data flow
-- `docs/architecture/orchestration.md`: the task graph
-- `docs/reference/`: API, configuration, MCP tools, CLI, data model
-- `docs/adr/`: why things are the way they are
+- Agregar un endpoint, una herramienta MCP o una regla de enmascarado: `docs/guides/development.md`.
+
+## Para leer después
+
+- `docs/architecture/overview.md`: componentes y flujo de datos
+- `docs/architecture/orchestration.md`: el grafo de tareas
+- `docs/reference/`: API, configuración, herramientas MCP, CLI, modelo de datos
+- `docs/adr/`: por qué las cosas son como son
