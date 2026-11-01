@@ -1,14 +1,14 @@
-# Decisiones de arquitectura (ADR)
+# Architecture decision records (ADR)
 
-Cada ADR registra una decisión, su contexto y sus consecuencias. Si una decisión cambia, se agrega un ADR nuevo que reemplaza al anterior; no se reescribe la historia.
+Each ADR records a decision, its context and its consequences. If a decision changes, a new ADR is added that supersedes the previous one; history is not rewritten.
 
-| # | Decisión |
+| # | Decision |
 | --- | --- |
-| [0001](0001-typescript-en-todo.md) | TypeScript en el Worker, el plugin y la orquestación |
-| [0002](0002-un-sql-dos-backends.md) | Una interfaz con forma de D1 para correr el mismo SQL en D1 y en SQLite local |
-| [0003](0003-extender-engram-sin-fork.md) | ~~Extender Engram leyendo su API~~ (reemplazada por 0008) |
-| [0004](0004-langgraph-sin-checkpointer.md) | LangGraph un paso por invocación; el estado vive en el backend con lease |
-| [0005](0005-configuracion-archivo-y-entorno.md) | Configuración por archivo 0600 y variables de entorno, no `userConfig` |
-| [0006](0006-enmascarado-en-el-cliente.md) | Enmascarado en el cliente con placeholders HMAC |
-| [0007](0007-bundle-versionado.md) | Bundle del plugin versionado en `plugin/dist` |
-| [0008](0008-memoria-propia-local-primero.md) | Memoria propia, local primero, sin depender de Engram |
+| [0001](0001-typescript-everywhere.md) | TypeScript in the Worker, the plugin and orchestration |
+| [0002](0002-one-sql-two-backends.md) | A D1-shaped interface to run the same SQL on D1 and on local SQLite |
+| [0003](0003-extend-engram-without-fork.md) | ~~Extend Engram by reading its API~~ (superseded by 0008) |
+| [0004](0004-langgraph-without-checkpointer.md) | LangGraph one step per invocation; state lives in the backend with a lease |
+| [0005](0005-config-file-and-environment.md) | Configuration via a 0600 file and environment variables, not `userConfig` |
+| [0006](0006-client-side-masking.md) | Client-side masking with HMAC placeholders |
+| [0007](0007-committed-bundle.md) | Plugin bundle committed in `plugin/dist` |
+| [0008](0008-built-in-local-first-memory.md) | Built-in, local-first memory, with no dependency on Engram |

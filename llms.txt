@@ -1,6 +1,6 @@
 # orchestra-man
 
-> Claude Code plugin for multi-agent code generation and correction across repositories. Each repo's Claude Code keeps its own local memory (an Engram-style store: topic upserts, versions, dedupe, FTS5) and shares it masked, plus checkpoints, messages and lease-guarded tasks through a personal Cloudflare Worker + D1 (or local SQLite). LangGraph orders the steps (investigate, plan, approve, edit, verify, propose); Claude Code does the reasoning. Documentation is in Spanish; code and comments in English.
+> Claude Code plugin for multi-agent code generation and correction across repositories. Each repo's Claude Code keeps its own local memory (an Engram-style store: topic upserts, versions, dedupe, FTS5) and shares it masked, plus checkpoints, messages and lease-guarded tasks through a personal Cloudflare Worker + D1 (or local SQLite). LangGraph orders the steps (investigate, plan, approve, edit, verify, propose); Claude Code does the reasoning. Documentation, code and comments are in English. The plugin's runtime output (session context, diagnosis, task instructions, setup script prompts) is still in Spanish.
 
 ## Start here
 

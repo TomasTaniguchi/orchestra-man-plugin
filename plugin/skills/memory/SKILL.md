@@ -1,61 +1,63 @@
 ---
 name: memory
-description: "SIEMPRE ACTIVA. Memoria persistente de este repositorio: qué guardar (decisiones, causas raíz, contratos, restricciones), cómo actualizar por tema, cómo recordar y qué hacer al cerrar una sesión o después de una compactación."
+description: "ALWAYS ACTIVE. Persistent memory for this repository: what to save (decisions, root causes, contracts, constraints), how to update by topic, how to recall, and what to do when closing a session or after a compaction."
 ---
 
-# Memoria de este repositorio
+# Memory for this repository
 
-Tenés una memoria persistente que sobrevive entre sesiones y compactaciones. Vive en esta máquina y se comparte, enmascarada, con los agentes de los otros repositorios en cada sincronización. Seguí este protocolo sin esperar a que te lo pidan.
+You have a persistent memory that survives across sessions and compactions. It lives on this machine and is shared, masked, with the agents of the other repositories on every sync. Follow this protocol without waiting to be asked.
 
-## Qué guardar
+## What to save
 
-Guardá conocimiento **verificado, duradero y caro de reconstruir**:
-- decisiones con su razón;
-- causas raíz que no eran obvias;
-- contratos de API y eventos que otros servicios consumen;
-- restricciones reales;
-- trabajo pendiente que importa para retomar.
+Save knowledge that is **verified, durable, and expensive to rebuild**:
+- decisions with their reasoning;
+- root causes that were not obvious;
+- API and event contracts that other services consume;
+- real constraints;
+- pending work that matters for picking things up again.
 
-Agrupá conclusiones relacionadas; no guardes cada paso.
+Group related conclusions; do not save every step.
 
-**No guardes:** secretos, datos personales, especulación, volcados crudos ni progreso rutinario. Si un dato sensible es imprescindible, envolvelo en `<private>…</private>`: no se guarda, ni siquiera localmente.
+**Do not save:** secrets, personal data, speculation, raw dumps, or routine progress. If a sensitive value is essential, wrap it in `<private>…</private>`: it is not saved, not even locally.
 
-Formato de `orchestra_save`:
-- **title**: verbo + qué, corto y buscable ("Corregido N+1 en OrderList", "Elegido D1 sobre KV").
-- **type**: `bugfix`, `decision`, `architecture`, `discovery`, `pattern`, `config`, `preference` o `learning`.
-- **scope**: `project` (por defecto, se comparte con los otros repos) o `personal` (solo esta máquina, nunca se sube).
-- **topicKey**: clave estable para temas que evolucionan, por ejemplo `architecture/invoice-api`. Podés pedir una sugerencia con `orchestra_suggest_topic_key`.
+Memories may be written in the user's language.
+
+`orchestra_save` format:
+- **title**: verb + what, short and searchable ("Fixed N+1 in OrderList", "Chose D1 over KV").
+- **type**: `bugfix`, `decision`, `architecture`, `discovery`, `pattern`, `config`, `preference` or `learning`.
+- **scope**: `project` (default, shared with the other repos) or `personal` (this machine only, never uploaded).
+- **topicKey**: stable key for topics that evolve, for example `architecture/invoice-api`. You can ask for a suggestion with `orchestra_suggest_topic_key`.
 - **content**:
-  - **What**: una oración con lo que se hizo.
-  - **Why**: qué lo motivó.
-  - **Where**: archivos o rutas.
-  - **Learned**: sorpresas y casos borde (omitilo si no hay).
+  - **What**: one sentence about what was done.
+  - **Why**: what motivated it.
+  - **Where**: files or paths.
+  - **Learned**: surprises and edge cases (omit it if there are none).
 
-## Actualizar por tema (obligatorio)
+## Update by topic (required)
 
-1. Antes de escribir sobre un tema, buscá con `orchestra_search` y leé completos los candidatos con `orchestra_get`. Un fragmento no prueba que sea el mismo tema.
-2. **Mismo tema**: guardá con el mismo `topicKey`, o usá `orchestra_update` con el id. La versión anterior queda en el historial. Conservá los hechos que siguen siendo válidos.
-3. **Tema nuevo**: `orchestra_save` con un `topicKey` distinto y deliberado. Si ya está cubierto, no escribas nada.
-4. Si no estás seguro de que sea el mismo tema, o la búsqueda falló, no sobrescribas ni dupliques: preguntá o seguí sin guardar.
+1. Before writing about a topic, search with `orchestra_search` and read the candidates in full with `orchestra_get`. A snippet does not prove it is the same topic.
+2. **Same topic**: save with the same `topicKey`, or use `orchestra_update` with the id. The previous version stays in the history. Keep the facts that are still valid.
+3. **New topic**: `orchestra_save` with a different, deliberate `topicKey`. If it is already covered, do not write anything.
+4. If you are not sure it is the same topic, or the search failed, do not overwrite or duplicate: ask, or continue without saving.
 
-Guardar dos veces lo mismo en 15 minutos no duplica: solo suma un contador.
+Saving the same thing twice within 15 minutes does not duplicate it: it only increments a counter.
 
-## Recordar
+## Recall
 
-Cuando el usuario pregunte por trabajo pasado ("¿qué hicimos con…?", "acordate de…", "¿cómo resolvimos…?"):
+When the user asks about past work ("what did we do with…?", "remember…", "how did we solve…?"):
 
-1. `orchestra_context`: sesiones recientes, fijadas y recientes de este repo. Es rápido.
-2. `orchestra_search` con palabras distintivas.
-3. `orchestra_get` para el contenido completo. `orchestra_timeline` muestra lo que se guardó antes y después en la misma sesión.
-4. Si es sobre **otro** repositorio, usá `orchestra_recall` (ver la skill `orchestra`).
+1. `orchestra_context`: recent sessions, pinned and recent memories for this repo. It is fast.
+2. `orchestra_search` with distinctive words.
+3. `orchestra_get` for the full content. `orchestra_timeline` shows what was saved before and after in the same session.
+4. If it is about **another** repository, use `orchestra_recall` (see the `orchestra` skill).
 
-Buscá cuando sirva de verdad; mencionar el proyecto no alcanza para buscar.
+Search when it actually helps; mentioning the project is not enough reason to search.
 
-Fijá con `orchestra_pin` lo que tiene que estar siempre en el contexto, como un contrato central o una regla del repo.
+Pin with `orchestra_pin` what must always be in the context, such as a central contract or a repo rule.
 
-## Cerrar una sesión
+## Closing a session
 
-En un cierre o traspaso explícito, llamá a `orchestra_session_summary` con:
+On an explicit close or handoff, call `orchestra_session_summary` with:
 - **Goal**
 - **Instructions**
 - **Discoveries**
@@ -63,20 +65,20 @@ En un cierre o traspaso explícito, llamá a `orchestra_session_summary` con:
 - **Next Steps**
 - **Relevant Files**
 
-Terminar una tarea común no requiere resumen.
+Finishing an ordinary task does not require a summary.
 
-## Después de una compactación
+## After a compaction
 
-Si el contexto dice que se compactó (bloque "el contexto se compactó"):
+If the context says it was compacted (a block reading "el contexto se compactó"):
 
-1. **Primero**, `orchestra_session_summary` con el contenido del resumen compactado. Si no, se pierde lo hecho antes de compactar.
-2. Después, leé la memoria inyectada y, si hace falta, `orchestra_context`.
-3. Recién entonces seguí con la tarea.
+1. **First**, `orchestra_session_summary` with the content of the compacted summary. Otherwise, the work done before compaction is lost.
+2. Then read the injected memory and, if needed, `orchestra_context`.
+3. Only then continue with the task.
 
-## Captura pasiva
+## Passive capture
 
-Si un subagente termina su respuesta con una sección `## Key Learnings` o `## Aprendizajes` en ítems, el plugin guarda cada ítem nuevo como memoria. Es una red de seguridad, no reemplaza a `orchestra_save`. También podés llamar a `orchestra_capture_passive` con un texto que tenga esa sección.
+If a subagent ends its response with a `## Key Learnings` or `## Aprendizajes` section of list items, the plugin saves each new item as a memory. It is a safety net; it does not replace `orchestra_save`. You can also call `orchestra_capture_passive` with text that contains that section.
 
-## Entrega
+## Delivery
 
-La memoria es contabilidad interna, no la respuesta. Guardá antes de escribir la respuesta final. Si guardar falla, igual respondé, y no digas que algo quedó guardado si no lo confirmaste.
+Memory is internal bookkeeping, not the answer. Save before writing the final answer. If saving fails, answer anyway, and do not say something was saved unless you confirmed it.

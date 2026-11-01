@@ -1,41 +1,43 @@
 ---
 name: orchestra
-description: Protocolo multi-agente de orchestra-man. Usalo cuando una tarea toca más de un repositorio o microservicio, cuando necesitás saber cómo funciona otro servicio (métodos, endpoints, contratos), o cuando llega un mensaje de otro repo (investigate-request, edit-request) a la bandeja.
+description: orchestra-man multi-agent protocol. Use it when a task touches more than one repository or microservice, when you need to know how another service works (methods, endpoints, contracts), or when a message from another repo (investigate-request, edit-request) arrives in the inbox.
 ---
 
-# orchestra-man: protocolo multi-agente
+# orchestra-man: multi-agent protocol
 
-Cada repositorio tiene su propio Claude Code con este plugin. Compartís memoria enmascarada, checkpoints y una bandeja de mensajes a través del backend del usuario (su Worker con D1, o un SQLite local). Vos razonás; el grafo de LangGraph solo ordena los pasos y guarda el estado.
+Each repository has its own Claude Code with this plugin. You share masked memory, checkpoints and a message inbox through the user's backend (their Worker with D1, or a local SQLite). You do the reasoning; the LangGraph graph only sequences the steps and stores the state.
 
-## Antes de preguntar o despertar a otro repo
+Always answer the user in the user's language.
 
-1. `orchestra_recall` con palabras del problema (funciona aunque el codespace del otro repo esté apagado).
-2. `orchestra_checkpoints` para ver en qué rama y commit quedó cada repo.
-3. Si alcanza con memoria, no molestes a nadie. Decí siempre la fecha del checkpoint en el que te basás: es contexto que puede estar viejo.
+## Before asking or waking another repo
 
-Solo si hace falta **ejecutar o editar** en otro repo y está offline, ofrecé `orchestra_wake` y avisá al usuario que enciende un codespace (tiene costo).
+1. `orchestra_recall` with words from the problem (it works even if the other repo's codespace is stopped).
+2. `orchestra_checkpoints` to see the branch and commit where each repo left off.
+3. If memory is enough, do not bother anyone. Always state the date of the checkpoint you rely on: that context may be stale.
 
-## Cuando sos el orquestador (la consulta empezó acá)
+Only if you need to **run or edit** something in another repo and it is offline, offer `orchestra_wake` and warn the user that it starts a codespace (it has a cost).
 
-1. `orchestra_task_start` con el objetivo y los repos involucrados. Seguí la `instruction` que devuelve cada paso.
-2. **investigate**: leé el contexto, revisá tu código, juntá las respuestas `investigate-result` con `orchestra_inbox`. Reportá con `orchestra_task_advance` kind=findings.
-3. **plan**: plan concreto por repo (archivos, cambios, riesgos, cómo verificar). kind=plan.
-4. **approve**: mostrale el plan al usuario y esperá su decisión explícita. Recién entonces `orchestra_task_approve` con `approve`, `revise` o `plan-only`. **Nunca decidas por el usuario y nunca edites antes de este paso.**
-5. **edit**: cambios en una rama nueva, nunca en la principal. Los otros repos reciben `edit-request`. kind=edits con repo, rama y resumen.
-6. **verify**: tests, lint y build en cada repo tocado. kind=verification. Si falla, el grafo vuelve a edit; tras varios fallos vuelve a plan y hay que pedir autorización otra vez.
-7. **propose**: un pull request por repo, sin merge. kind=pull-requests.
+## When you are the orchestrator (the request started here)
 
-Si `orchestra_task_advance` devuelve `conflict` porque otro agente tiene el lease, no insistas: leé la tarea con `orchestra_task_get` y avisá al usuario quién la está orquestando.
+1. `orchestra_task_start` with the goal and the repos involved. Follow the `instruction` that each step returns.
+2. **investigate**: read the context, review your code, and collect the `investigate-result` replies with `orchestra_inbox`. Report with `orchestra_task_advance` kind=findings.
+3. **plan**: a concrete plan per repo (files, changes, risks, how to verify). kind=plan.
+4. **approve**: show the plan to the user and wait for their explicit decision. Only then call `orchestra_task_approve` with `approve`, `revise` or `plan-only`. **Never decide for the user and never edit before this step.**
+5. **edit**: changes on a new branch, never on the main branch. The other repos receive `edit-request`. kind=edits with repo, branch and summary.
+6. **verify**: tests, lint and build in each touched repo. kind=verification. If it fails, the graph returns to edit; after several failures it returns to plan and you must ask for authorization again.
+7. **propose**: one pull request per repo, without merging. kind=pull-requests.
 
-## Cuando te llega un mensaje
+If `orchestra_task_advance` returns `conflict` because another agent holds the lease, do not insist: read the task with `orchestra_task_get` and tell the user who is orchestrating it.
 
-El monitor del plugin te avisa con una línea `[orchestra-man] Mensaje ...`. Entonces:
+## When a message arrives
 
-- Leelo completo con `orchestra_inbox`.
-- `investigate-request`: investigá solo en tu repo y respondé con `orchestra_send` kind=investigate-result, mismo `taskId`, al `fromRepo`.
-- `edit-request`: el usuario ya autorizó en el repo orquestador, pero **confirmá con el usuario de esta sesión** antes de editar acá. Rama nueva, tests, y respondé kind=edit-result con rama y resultado.
-- Al terminar, `orchestra_ack` con el id del mensaje.
+The plugin monitor notifies you with a `[orchestra-man] Mensaje ...` line. Then:
 
-## Datos sensibles
+- Read it in full with `orchestra_inbox`.
+- `investigate-request`: investigate only in your repo and reply with `orchestra_send` kind=investigate-result, same `taskId`, to the `fromRepo`.
+- `edit-request`: the user already authorized it in the orchestrator repo, but **confirm with the user of this session** before editing here. New branch, tests, and reply kind=edit-result with the branch and the result.
+- When done, `orchestra_ack` with the message id.
 
-Todo lo que sale de esta máquina se enmascara (emails, teléfonos, tokens, claves, UUIDs, ids numéricos). Verás placeholders como `<email:1a2b3c4d>`: el mismo valor siempre da el mismo placeholder, así que podés correlacionarlos, pero no intentes reconstruir el valor. No pegues secretos en mensajes ni planes aunque el enmascarado los cubra.
+## Sensitive data
+
+Everything that leaves this machine is masked (emails, phone numbers, tokens, keys, UUIDs, numeric ids). You will see placeholders like `<email:1a2b3c4d>`: the same value always produces the same placeholder, so you can correlate them, but do not try to reconstruct the value. Do not paste secrets into messages or plans, even though masking covers them.

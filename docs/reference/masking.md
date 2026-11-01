@@ -1,16 +1,16 @@
-# Enmascarado
+# Masking
 
-Código: `src/masking/`. Se aplica en el cliente, **antes** de cualquier petición de red, mediante el decorador `maskedRemote`, que `createRuntime` aplica siempre.
+Code: `src/masking/`. It runs on the client, **before** any network request, through the `maskedRemote` decorator, which `createRuntime` always applies.
 
-## Qué se enmascara
+## What gets masked
 
-Los campos de texto libre: título y contenido de memorias, resumen de checkpoints, cuerpo de mensajes, título de tareas y todo string dentro del estado de una tarea. Los identificadores (repo, agente, ids de tareas y mensajes) **no** se enmascaran, porque se usan para enrutar.
+Free-text fields: memory title and content, checkpoint summary, message body, task title, and every string inside a task's state. Identifiers (repo, agent, task and message ids) are **not** masked, because they are used for routing.
 
-## Reglas por defecto
+## Default rules
 
-En orden de aplicación (`DEFAULT_RULES` en `src/masking/rules.ts`):
+In order of application (`DEFAULT_RULES` in `src/masking/rules.ts`):
 
-| Regla | Ejemplo | Resultado |
+| Rule | Example | Result |
 | --- | --- | --- |
 | `private_key` | `-----BEGIN RSA PRIVATE KEY----- …` | `<private_key:…>` |
 | `jwt` | `eyJhbGciOi….eyJzdWIi….dozj…` | `<jwt:…>` |
@@ -19,36 +19,36 @@ En orden de aplicación (`DEFAULT_RULES` en `src/masking/rules.ts`):
 | `secret_assignment` | `password: "S3cr3t"`, `api_key=…`, `token=…` | `password: "<secret_assignment:…>"` |
 | `github_token` | `ghp_…`, `github_pat_…` | `<github_token:…>` |
 | `aws_access_key` | `AKIAIOSFODNN7EXAMPLE` | `<aws_access_key:…>` |
-| `api_key` | `sk_live_…`, `sk-…`, `xoxb-…`, tokens `om_…` | `<api_key:…>` |
+| `api_key` | `sk_live_…`, `sk-…`, `xoxb-…`, `om_…` tokens | `<api_key:…>` |
 | `email` | `jane.doe@acme.com` | `<email:…>` |
 | `phone` | `+54 9 11 4567-8901`, `(011) 4567-8901` | `<phone:…>` |
 | `uuid` | `3f2c8a10-5b7e-…` | `<uuid:…>` |
 | `id` | `user_id=8812345`, `"customerId": 123456` | `user_id=<id:…>` |
 
-El snapshot de `src/masking/masking.test.ts` muestra el resultado exacto sobre un texto de ejemplo, y otro test garantiza que versiones, fechas, puertos, SHAs de git y código **no** se tocan.
+The snapshot in `src/masking/masking.test.ts` shows the exact result on a sample text, and another test guarantees that versions, dates, ports, git SHAs and code are **not** touched.
 
 ## Placeholders
 
-`<regla:hash>`, donde `hash` son los primeros 8 caracteres hex de `HMAC-SHA256(salt, valor)`.
+`<rule:hash>`, where `hash` is the first 8 hex characters of `HMAC-SHA256(salt, value)`.
 
-- **Deterministas**: el mismo valor da siempre el mismo placeholder, así los agentes pueden decir "el cliente `<email:bab800ec>` aparece en el incidente y en la factura".
-- **No reversibles sin el salt**: un HMAC con salt secreto evita que se pruebe un diccionario de emails o teléfonos.
-- **Mismo salt en todas las máquinas**: si no, el mismo valor da placeholders distintos en cada repo.
+- **Deterministic**: the same value always yields the same placeholder, so agents can say "customer `<email:bab800ec>` appears in the incident and in the invoice".
+- **Not reversible without the salt**: an HMAC with a secret salt prevents dictionary attacks on emails or phone numbers.
+- **Same salt on every machine**: otherwise the same value yields different placeholders in each repo.
 
-## Reglas propias
+## Custom rules
 
 ```bash
 cli.mjs configure --set 'maskPatterns=["CUST-\\d{6}", "\\bAR\\d{11}\\b"]'
 ```
 
-O la variable `ORCHESTRA_MASK_PATTERNS` con el mismo array JSON. Se aplican después de las reglas por defecto y producen `<custom:…>`. Un patrón inválido hace fallar la carga de configuración con un mensaje que lo nombra.
+Or the `ORCHESTRA_MASK_PATTERNS` variable with the same JSON array. They run after the default rules and produce `<custom:…>`. An invalid pattern makes configuration loading fail with a message that names it.
 
-## Límites conocidos
+## Known limits
 
-`shortcut`: el enmascarado es por expresiones regulares.
+`shortcut`: masking is based on regular expressions.
 
-- **No detecta**: nombres de personas, direcciones postales, números de documento sin contexto, tarjetas de crédito, ni datos sensibles en texto libre sin un formato reconocible.
-- **Teléfonos**: solo internacionales con `+` o locales con código de área entre paréntesis. Las secuencias de dígitos sueltas se dejan porque suelen ser ids, puertos o timestamps.
-- **IDs numéricos**: solo cuando están asignados a una clave con forma de id (`*_id`, `*Id`, `id`, `ID`) y tienen 4 dígitos o más.
+- **Not detected**: people's names, postal addresses, ID numbers without context, credit cards, or sensitive data in free text without a recognizable format.
+- **Phone numbers**: only international ones with `+` or local ones with an area code in parentheses. Loose digit sequences are left alone because they are usually ids, ports or timestamps.
+- **Numeric IDs**: only when assigned to an id-shaped key (`*_id`, `*Id`, `id`, `ID`) and 4 or more digits long.
 
-Si la política de datos de tu empresa exige más, el siguiente paso es sumar un detector de entidades (NER) en `createMasker`. La interfaz `Mask` (`(text) => text`) no cambia.
+If your company's data policy requires more, the next step is to add an entity detector (NER) in `createMasker`. The `Mask` interface (`(text) => text`) does not change.

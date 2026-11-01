@@ -1,76 +1,76 @@
-# Instalar y configurar el plugin
+# Install and configure the plugin
 
-Instalalo en **cada** codespace y clon local que quieras conectar. Todos deben apuntar al mismo backend y usar el **mismo salt de enmascarado**.
+Install it in **every** codespace and local clone you want to connect. All of them must point to the same backend and use the **same masking salt**.
 
-No hace falta nada más: la memoria de cada repo viene incluida en el plugin. Solo se necesita Node.js 22.13 o superior (los codespaces con la imagen universal ya lo traen; si no, agregá la feature `node` en `devcontainer.json`).
+Nothing else is needed: each repo's memory is built into the plugin. You only need Node.js 22.13 or later (codespaces with the universal image already have it; otherwise, add the `node` feature in `devcontainer.json`).
 
-## 1. Instalar
+## 1. Install
 
-En Claude Code:
+In Claude Code:
 
 ```
 /plugin marketplace add TomasTaniguchi/orchestra-man-plugin
 /plugin install orchestra-man@orchestra-man
 ```
 
-Para todos los que trabajan en un repo, podés instalarlo con alcance de proyecto (queda en `.claude/settings.json` del repo). Cada persona lo instala igual en su máquina.
+For everyone working on a repo, you can install it with project scope (it goes into the repo's `.claude/settings.json`). Each person still installs it on their own machine.
 
-## 2. Configurar
+## 2. Configure
 
-La configuración vive en `~/.config/orchestra-man/config.json` (permisos 0600) y las variables de entorno tienen prioridad. Detalle de cada clave en [configuration.md](../reference/configuration.md).
+The config lives in `~/.config/orchestra-man/config.json` (permissions 0600), and environment variables take precedence. Details for each key are in [configuration.md](../reference/configuration.md).
 
-### Clon local, modo compartido (D1)
+### Local clone, shared mode (D1)
 
-En Claude Code:
+In Claude Code:
 
 ```
 /orchestra-man:configure d1
 ```
 
-La skill configura el modo y la URL. El token lo cargás vos en **tu terminal** (no en el chat), así no queda en ningún historial:
+The skill sets the mode and the URL. You enter the token yourself in **your terminal** (not in the chat), so it does not end up in any history:
 
 ```bash
-node ~/.claude/plugins/<ruta-que-te-indica-la-skill>/dist/cli.mjs configure --token-stdin
-# pegá el token, Enter, Ctrl-D
+node ~/.claude/plugins/<path-the-skill-gives-you>/dist/cli.mjs configure --token-stdin
+# paste the token, Enter, Ctrl-D
 ```
 
 ### Codespace
 
-En codespaces no hace falta archivo. Creá secretos de **GitHub Codespaces** (Settings → Codespaces → Secrets) y asignalos a los repos que corresponda:
+Codespaces need no file. Create **GitHub Codespaces** secrets (Settings → Codespaces → Secrets) and assign them to the relevant repos:
 
-| Secreto | Valor |
+| Secret | Value |
 | --- | --- |
-| `ORCHESTRA_URL` | URL de tu Worker |
-| `ORCHESTRA_TOKEN` | Token emitido para codespaces |
-| `ORCHESTRA_MASK_SALT` | El mismo salt que usás en tus otras máquinas |
+| `ORCHESTRA_URL` | Your Worker's URL |
+| `ORCHESTRA_TOKEN` | Token issued for codespaces |
+| `ORCHESTRA_MASK_SALT` | The same salt you use on your other machines |
 
-Los procesos del plugin (servidor MCP, hooks y monitor) leen estas variables. Reiniciá el codespace después de crearlos. GitHub expone `CODESPACES` y `CODESPACE_NAME`, y el plugin los usa para registrarse como agente de codespace (eso habilita `orchestra_wake`).
+The plugin processes (MCP server, hooks and monitor) read these variables. Restart the codespace after creating them. GitHub exposes `CODESPACES` and `CODESPACE_NAME`, and the plugin uses them to register as a codespace agent (this enables `orchestra_wake`).
 
-### Solo esta máquina (modo local)
+### This machine only (local mode)
 
 ```
 /orchestra-man:configure local
 ```
 
-Usa un SQLite en `~/.local/share/orchestra-man/orchestra.db`. Sirve para varios clones locales en la misma máquina sin nube.
+Uses a SQLite file at `~/.local/share/orchestra-man/orchestra.db`. Useful for several local clones on the same machine without the cloud.
 
-### El salt de enmascarado
+### The masking salt
 
-La primera vez se genera un `maskSalt` aleatorio. **Copialo igual a todas tus máquinas** (archivo o secreto `ORCHESTRA_MASK_SALT`): si dos máquinas usan salts distintos, el mismo email produce placeholders distintos y los agentes no pueden correlacionarlos. No lo compartas fuera de tus máquinas.
+The first time, a random `maskSalt` is generated. **Copy it unchanged to all your machines** (file or `ORCHESTRA_MASK_SALT` secret): if two machines use different salts, the same email produces different placeholders and agents cannot correlate them. Do not share it outside your machines.
 
-## 3. Verificar
+## 3. Verify
 
-Reiniciá la sesión de Claude Code y corré:
+Restart the Claude Code session and run:
 
 ```
 /orchestra-man:help
 ```
 
-Si la sección "Estado" dice "Todo en orden.", está listo. Si no, cada punto dice qué hacer. Al abrir cada sesión vas a ver además el bloque `# orchestra-man`.
+If the "Estado" (status) section says "Todo en orden." (all good), it is ready. If not, each item tells you what to do. You will also see the `# orchestra-man` block when each session opens.
 
-## Permisos
+## Permissions
 
-Claude Code te pedirá permiso para las herramientas MCP la primera vez. Recomendación:
+Claude Code asks for permission for the MCP tools the first time. Recommendation:
 
-- Permití sin preguntar las de lectura (`orchestra_status`, `orchestra_recall`, `orchestra_checkpoints`, `orchestra_inbox`, `orchestra_task_get`).
-- **No** agregues `orchestra_task_approve` a la lista de permitidas: ese permiso es tu confirmación de que se puede editar código.
+- Allow the read tools without asking (`orchestra_status`, `orchestra_recall`, `orchestra_checkpoints`, `orchestra_inbox`, `orchestra_task_get`).
+- Do **not** add `orchestra_task_approve` to the allow list: that permission prompt is your confirmation that code may be edited.

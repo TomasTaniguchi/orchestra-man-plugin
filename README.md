@@ -1,102 +1,102 @@
 # orchestra-man
 
-Plugin de Claude Code para **generar y corregir código entre varios repositorios a la vez**, con agentes que se hablan entre sí y una memoria compartida que sobrevive a que un codespace esté apagado.
+A Claude Code plugin to **generate and fix code across several repositories at once**, with agents that talk to each other and a shared memory that survives while a codespace is shut down.
 
 ```
- codespace acme/billing          clon local acme/api (acá preguntás)        clon local acme/web
+ codespace acme/billing          local clone acme/api (you ask here)      local clone acme/web
  ┌──────────────────────┐        ┌──────────────────────────────┐          ┌──────────────────────┐
- │ Claude Code          │        │ Claude Code  ← orquestador   │          │ Claude Code          │
+ │ Claude Code          │        │ Claude Code  ← orchestrator  │          │ Claude Code          │
  │ + orchestra-man      │        │ + orchestra-man (LangGraph)  │          │ + orchestra-man      │
- │ + memoria local      │        │ + memoria local              │          │ + memoria local      │
+ │ + local memory       │        │ + local memory               │          │ + local memory       │
  └──────────┬───────────┘        └──────────────┬───────────────┘          └──────────┬───────────┘
-            │       memoria enmascarada · checkpoints · mensajes · tareas con lease    │
+            │       masked memory · checkpoints · messages · leased tasks              │
             └──────────────────────────────┬────────────────────────────────────────────┘
                                            ▼
-                       Tu Worker de Cloudflare + D1   (o SQLite local)
+                       Your Cloudflare Worker + D1   (or local SQLite)
 ```
 
-## Qué resuelve
+## What it solves
 
-Trabajamos con microservicios en repositorios separados que funcionan como un solo producto. Cada Claude Code solo ve su repo, así que:
+We work with microservices in separate repositories that act as a single product. Each Claude Code only sees its own repo, so:
 
-- **Olvida todo al cerrar la sesión.** Cada repo tiene su propia memoria persistente: decisiones, causas raíz y contratos que Claude guarda y recupera entre sesiones y después de compactar el contexto.
-- **No sabe cómo es el otro servicio.** orchestra-man publica la memoria de cada repo en una base compartida. Desde `acme/api` podés preguntar cómo funciona el endpoint de `acme/billing` **aunque su codespace esté apagado**.
-- **Un cambio cruza varios repos.** El Claude donde arrancás la consulta pasa a ser el **orquestador**: investiga con los demás, arma un plan, te pide autorización y coordina las ediciones. Cualquier repo puede ser orquestador, y si una máquina se duerme a mitad de tarea, otra puede tomarla.
-- **Los agentes se hablan en ambos sentidos.** Cada repo tiene una bandeja. Un monitor del plugin avisa a Claude cuando llega un pedido de otro repo, y la respuesta vuelve por el mismo canal.
-- **No querés que salgan datos sensibles.** Todo lo que sale de tu máquina pasa antes por un enmascarado: emails, teléfonos, tokens, claves y IDs se reemplazan por placeholders estables como `<email:1a2b3c4d>`.
+- **It forgets everything when the session closes.** Each repo has its own persistent memory: decisions, root causes and contracts that Claude saves and recalls across sessions and after context compaction.
+- **It does not know how the other service works.** orchestra-man publishes each repo's memory to a shared database. From `acme/api` you can ask how the `acme/billing` endpoint works **even if its codespace is shut down**.
+- **A change spans several repos.** The Claude where you start the request becomes the **orchestrator**: it investigates with the others, builds a plan, asks for your approval and coordinates the edits. Any repo can be the orchestrator, and if a machine goes to sleep mid-task, another one can take over.
+- **Agents talk in both directions.** Each repo has an inbox. A plugin monitor notifies Claude when a request arrives from another repo, and the reply comes back through the same channel.
+- **You do not want sensitive data to leak.** Everything that leaves your machine is masked first: emails, phone numbers, tokens, keys and IDs are replaced with stable placeholders such as `<email:1a2b3c4d>`.
 
-## Cómo funciona
+## How it works
 
-| Pieza | Qué hace |
+| Piece | What it does |
 | --- | --- |
-| **Memoria** | Cada repo guarda en un SQLite local lo que vale la pena recordar: actualizaciones por tema con historial, sin duplicados, búsqueda de texto completo, sesiones con resumen y recuperación tras compactar. Diseño inspirado en [Engram](https://github.com/Gentleman-Programming/engram), sin necesidad de instalarlo. Lo `personal` nunca sale de la máquina. |
-| **Sincronización** | Al abrir Claude Code, cada 5 minutos y al cerrar: publica solo los cambios nuevos (enmascarados, en lotes) y guarda un *checkpoint* con rama, commit y archivos sin commitear. |
-| **Backend** | Tu Worker de Cloudflare con D1 (compartido entre máquinas) o un SQLite local (varios Claude en la misma máquina). Mismo código y mismo esquema en ambos. |
-| **Orquestación** | Un grafo de LangGraph: `investigate → plan → approve → edit → verify → propose`. Si la verificación falla, vuelve a `edit`; tras 3 fallos vuelve a `plan` y te pide autorización otra vez. LangGraph solo ordena pasos y llama herramientas: **el razonamiento lo hace Claude Code**, así que no hay costo extra de API. |
-| **Autorización** | Nada se edita sin tu decisión explícita (`approve`, `revise` o `plan-only`). Es una herramienta MCP aparte, así que Claude Code te pide permiso. Los cambios van siempre a ramas nuevas y terminan en pull requests, nunca en `main`. |
+| **Memory** | Each repo stores what is worth remembering in a local SQLite: topic updates with history, no duplicates, full-text search, sessions with summaries and recovery after compaction. Design inspired by [Engram](https://github.com/Gentleman-Programming/engram), with no need to install it. `personal` memories never leave the machine. |
+| **Sync** | When Claude Code opens, every 5 minutes and on close: it publishes only new changes (masked, in batches) and saves a *checkpoint* with branch, commit and uncommitted files. |
+| **Backend** | Your Cloudflare Worker with D1 (shared across machines) or a local SQLite (several Claude sessions on the same machine). Same code and same schema in both. |
+| **Orchestration** | A LangGraph graph: `investigate → plan → approve → edit → verify → propose`. If verification fails, it goes back to `edit`; after 3 failures it goes back to `plan` and asks for your approval again. LangGraph only orders steps and calls tools: **Claude Code does the reasoning**, so there is no extra API cost. |
+| **Approval** | Nothing is edited without your explicit decision (`approve`, `revise` or `plan-only`). It is a separate MCP tool, so Claude Code asks for your permission. Changes always go to new branches and end in pull requests, never in `main`. |
 
-Más detalle en [docs/architecture/overview.md](docs/architecture/overview.md).
+More detail in [docs/architecture/overview.md](docs/architecture/overview.md).
 
-## Requisitos
+## Requirements
 
 - Claude Code.
-- Node.js **22.13 o superior** (usa `node:sqlite`).
-- Para el modo compartido: una cuenta de Cloudflare (el plan Free alcanza para empezar).
+- Node.js **22.13 or later** (uses `node:sqlite`).
+- For shared mode: a Cloudflare account (the Free plan is enough to start).
 
-## Instalación rápida
+## Quick install
 
-### 1. Instalar el plugin
+### 1. Install the plugin
 
-Dentro de Claude Code:
+Inside Claude Code:
 
 ```
 /plugin marketplace add TomasTaniguchi/orchestra-man-plugin
 /plugin install orchestra-man@orchestra-man
 ```
 
-Instalalo en **cada** codespace y clon local que quieras conectar.
+Install it in **every** codespace and local clone you want to connect.
 
-### 2. Elegí el backend
+### 2. Choose the backend
 
-**Solo en esta máquina (sin nube):**
+**This machine only (no cloud):**
 
 ```
 /orchestra-man:configure local
 ```
 
-**Compartido entre máquinas (recomendado):** primero desplegá tu Worker con `npm run worker:setup` ([guía](docs/guides/deploy-worker.md)); en la máquina donde lo corrés, el script ya deja el plugin configurado. En las demás:
+**Shared across machines (recommended):** first deploy your Worker with `npm run worker:setup` ([guide](docs/guides/deploy-worker.md)); on the machine where you run it, the script already configures the plugin. On the others:
 
 ```
 /orchestra-man:configure d1
 ```
 
-El token **nunca se pega en el chat**: la skill te indica un comando para correr en tu terminal. En codespaces se usan secretos de GitHub Codespaces. Ver [docs/guides/install-plugin.md](docs/guides/install-plugin.md).
+The token is **never pasted into the chat**: the skill gives you a command to run in your terminal. In codespaces, use GitHub Codespaces secrets. See [docs/guides/install-plugin.md](docs/guides/install-plugin.md).
 
-### 3. Reiniciá Claude Code
+### 3. Restart Claude Code
 
-Al abrir la sesión vas a ver la memoria de tu repo y un bloque `# orchestra-man` con los otros repos (online u offline), su último checkpoint y tu bandeja. Para confirmar que todo está bien: `/orchestra-man:help`.
+When the session opens you will see your repo's memory and a `# orchestra-man` block with the other repos (online or offline), their latest checkpoint and your inbox. To confirm everything is fine: `/orchestra-man:help`.
 
-## Armar el Worker con D1 (resumen)
+## Set up the Worker with D1 (summary)
 
-Cada persona despliega **su propio** Worker desde este repo. Es de uso personal: tus datos quedan en tu cuenta. Un script interactivo hace todo, en macOS, Linux y Windows (Git Bash o WSL):
+Each person deploys **their own** Worker from this repo. It is for personal use: your data stays in your account. An interactive script does everything, on macOS, Linux and Windows (Git Bash or WSL):
 
 ```bash
 git clone https://github.com/TomasTaniguchi/orchestra-man-plugin && cd orchestra-man-plugin && npm ci
 npm run worker:setup
 ```
 
-El script inicia sesión en Cloudflare, crea la base D1 (o reutiliza una existente), aplica el esquema, despliega y carga los secretos. Al final emite un token para tu máquina y configura el plugin. Te pregunta los nombres, si querés generar el `ADMIN_TOKEN` y, opcionalmente, un `GITHUB_TOKEN` (PAT clásico con scope `codespace`) para que `orchestra_wake` pueda encender codespaces apagados. Tu configuración personal queda en `worker/wrangler.local.jsonc`, que git ignora.
+The script logs in to Cloudflare, creates the D1 database (or reuses an existing one), applies the schema, deploys and loads the secrets. At the end it issues a token for your machine and configures the plugin. It asks you for the names, whether to generate the `ADMIN_TOKEN` and, optionally, a `GITHUB_TOKEN` (classic PAT with the `codespace` scope) so `orchestra_wake` can start shut-down codespaces. Your personal configuration lives in `worker/wrangler.local.jsonc`, which git ignores.
 
-Los pasos manuales, cómo emitir tokens para otras máquinas, los límites de D1 y los backups están en [docs/guides/deploy-worker.md](docs/guides/deploy-worker.md).
+The manual steps, how to issue tokens for other machines, D1 limits and backups are in [docs/guides/deploy-worker.md](docs/guides/deploy-worker.md).
 
-## Ayuda
+## Help
 
 ```
-/orchestra-man:help              # diagnóstico + guía completa
-/orchestra-man:help memoria      # solo un tema: memoria, repos, tareas, mensajes, configuracion
+/orchestra-man:help              # diagnosis + full guide
+/orchestra-man:help memory       # a single topic: memory, repos, tasks, messages, config
 ```
 
-Muestra cómo está el plugin en esta máquina y, si algo falla, qué hacer:
+It shows the plugin's state on this machine and, if something fails, what to do:
 
 ```
 # orchestra-man · diagnóstico
@@ -116,76 +116,76 @@ Muestra cómo está el plugin en esta máquina y, si algo falla, qué hacer:
 Todo en orden.
 ```
 
-Después muestra una guía corta con ejemplos de qué pedirle a Claude. Solo se ejecuta cuando la invocás, así que no ocupa contexto en tus conversaciones. Desde la terminal, `node <ruta-del-plugin>/dist/cli.mjs doctor` da el mismo diagnóstico.
+Then it shows a short guide with examples of what to ask Claude. It only runs when you invoke it, so it takes no context in your conversations. From the terminal, `node <plugin-path>/dist/cli.mjs doctor` gives the same diagnosis.
 
-## Uso
+## Usage
 
-**Recordar** (memoria de este repo, entre sesiones):
+**Remember** (this repo's memory, across sessions):
 
-> ¿Qué decidimos sobre los reintentos de webhooks?
+> What did we decide about webhook retries?
 
-Claude busca en la memoria local (`orchestra_context`, `orchestra_search`). Lo que guarda lo decide la skill `memory`: decisiones, causas raíz, contratos; nunca secretos ni progreso rutinario.
+Claude searches the local memory (`orchestra_context`, `orchestra_search`). The `memory` skill decides what gets saved: decisions, root causes, contracts; never secrets or routine progress.
 
-**Preguntar por otro servicio** (funciona con su codespace apagado):
+**Ask about another service** (works with its codespace shut down):
 
-> ¿Cómo crea facturas el servicio de billing y qué devuelve?
+> How does the billing service create invoices and what does it return?
 
-Claude usa `orchestra_recall` sobre la memoria de `acme/billing` y te dice la fecha del checkpoint en que se basa.
+Claude uses `orchestra_recall` on the `acme/billing` memory and tells you the date of the checkpoint it relies on.
 
-**Un cambio que cruza repos:**
+**A change that spans repos:**
 
-> Quiero que las órdenes guarden el invoiceId de billing y que web muestre el link al recibo. Coordinalo con billing y web.
+> I want orders to store the invoiceId from billing and web to show the receipt link. Coordinate it with billing and web.
 
-1. Claude arranca la tarea (`orchestra_task_start`) y pide investigación a `acme/billing` y `acme/web`.
-2. Los Claude de esos repos reciben el aviso, investigan su código y responden.
-3. Te muestra un plan por repo y **espera tu decisión**.
-4. Si aprobás, cada repo edita su parte en una rama, verifica y abre un PR.
+1. Claude starts the task (`orchestra_task_start`) and asks `acme/billing` and `acme/web` to investigate.
+2. The Claude sessions in those repos get notified, investigate their code and reply.
+3. It shows you a plan per repo and **waits for your decision**.
+4. If you approve, each repo edits its part on a branch, verifies and opens a PR.
 
-**Cuando te llega un pedido** de otro repo, el monitor te avisa con una línea `[orchestra-man] Mensaje ...`. Claude lo lee, investiga o edita (y en ese caso te pide confirmación acá también) y responde.
+**When a request reaches you** from another repo, the monitor notifies you with a `[orchestra-man] Mensaje ...` line. Claude reads it, investigates or edits (and in that case asks for your confirmation here too) and replies.
 
-Más ejemplos en [docs/guides/usage.md](docs/guides/usage.md) y en `/orchestra-man:help`. Las 23 herramientas MCP están en [docs/reference/mcp-tools.md](docs/reference/mcp-tools.md).
+More examples in [docs/guides/usage.md](docs/guides/usage.md) and in `/orchestra-man:help`. The 23 MCP tools are listed in [docs/reference/mcp-tools.md](docs/reference/mcp-tools.md).
 
-## Seguridad y datos
+## Security and data
 
-- **Enmascarado en el cliente**, antes de cualquier petición de red: emails, teléfonos, JWT, tokens Bearer, credenciales en URLs, asignaciones de secretos, claves de GitHub, AWS y Stripe, UUIDs e IDs numéricos. Los placeholders son HMAC con un *salt* local: el mismo valor da el mismo placeholder (los agentes pueden correlacionar), pero no se puede revertir sin el salt. Podés sumar tus propias reglas. Es una primera versión basada en reglas: **no detecta nombres, direcciones ni texto libre sensible**. Ver [docs/reference/masking.md](docs/reference/masking.md).
-- **Tokens por máquina**, revocables. El Worker guarda solo su SHA-256.
-- **El código nunca se sube.** Git sigue siendo la fuente de verdad. Solo viajan memorias, checkpoints, mensajes y estado de tareas.
-- **Memorias personales y `<private>`.** Una memoria `personal` nunca sale de tu máquina, y si pasa a personal se retira del backend. Lo que esté entre `<private>…</private>` no se guarda, ni siquiera localmente. Las bajas viajan sin contenido.
-- Modelo de amenazas completo en [docs/security.md](docs/security.md).
+- **Client-side masking**, before any network request: emails, phone numbers, JWTs, Bearer tokens, credentials in URLs, secret assignments, GitHub, AWS and Stripe keys, UUIDs and numeric IDs. Placeholders are HMACs with a local *salt*: the same value gives the same placeholder (agents can correlate), but it cannot be reversed without the salt. You can add your own rules. It is a first, rule-based version: **it does not detect names, addresses or sensitive free text**. See [docs/reference/masking.md](docs/reference/masking.md).
+- **Per-machine tokens**, revocable. The Worker stores only their SHA-256.
+- **Code is never uploaded.** Git remains the source of truth. Only memories, checkpoints, messages and task state travel.
+- **Personal memories and `<private>`.** A `personal` memory never leaves your machine, and if a memory becomes personal it is withdrawn from the backend. Anything between `<private>…</private>` is not saved, not even locally. Withdrawals travel without content.
+- Full threat model in [docs/security.md](docs/security.md).
 
-## Desarrollo
+## Development
 
 ```bash
 npm ci
-npm run check        # typecheck + 119 tests (unitarios + end-to-end con snapshots) + build
+npm run check        # typecheck + 119 tests (unit + end-to-end with snapshots) + build
 ```
 
-Los tests end-to-end corren el escenario completo de tres repos contra **los dos backends** (Worker en proceso sobre SQLite y SQLite local), exigen resultados idénticos y verifican que ningún dato sensible llegue a la base. También ejecutan el bundle real (`plugin/dist`) como procesos, con MCP por stdio. Ver [docs/guides/development.md](docs/guides/development.md).
+The end-to-end tests run the full three-repo scenario against **both backends** (in-process Worker on SQLite and local SQLite), require identical results and verify that no sensitive data reaches the database. They also run the real bundle (`plugin/dist`) as processes, with MCP over stdio. See [docs/guides/development.md](docs/guides/development.md).
 
-Este repo está pensado para trabajar con agentes: empezá por [AGENTS.md](AGENTS.md).
+This repo is designed to be worked on with agents: start with [AGENTS.md](AGENTS.md).
 
-## Limitaciones conocidas (v0.1)
+## Known limitations (v0.1)
 
-- El contexto de un repo apagado es el de su **último checkpoint**: puede estar desactualizado.
-- Lo que guarda un repo llega a los demás en la siguiente sincronización (hasta 5 minutos, o al instante con `orchestra_sync`).
-- Si quien venía usando Engram quiere traer sus memorias, hoy no hay importador.
-- El enmascarado es por reglas (ver arriba).
-- `orchestra_wake` solo funciona con el backend D1 y un `GITHUB_TOKEN` del dueño de los codespaces.
-- En el plan Free de Cloudflare: 500 MB por base y 50 consultas por invocación. El plugin está dimensionado para eso ([docs/reference/d1-limits.md](docs/reference/d1-limits.md)).
+- The context of a shut-down repo is its **latest checkpoint**: it may be out of date.
+- What one repo saves reaches the others on the next sync (up to 5 minutes, or instantly with `orchestra_sync`).
+- If you have been using Engram and want to bring your memories over, there is no importer yet.
+- Masking is rule-based (see above).
+- `orchestra_wake` only works with the D1 backend and a `GITHUB_TOKEN` from the codespaces' owner.
+- On the Cloudflare Free plan: 500 MB per database and 50 queries per invocation. The plugin is sized for that ([docs/reference/d1-limits.md](docs/reference/d1-limits.md)).
 
-## Licencia
+## License
 
 MIT
 
-## Agradecimientos
+## Acknowledgements
 
-Gracias a [Alan Buscaglia (Gentleman Programming)](https://github.com/Alan-TheGentleman) por crear [Engram](https://github.com/Gentleman-Programming/engram). La memoria de orchestra-man toma sus conceptos:
-- memoria curada por el agente;
-- actualización por tema con historial;
-- deduplicación;
+Thanks to [Alan Buscaglia (Gentleman Programming)](https://github.com/Alan-TheGentleman) for creating [Engram](https://github.com/Gentleman-Programming/engram). orchestra-man's memory borrows its concepts:
+- agent-curated memory;
+- topic updates with history;
+- deduplication;
 - `<private>`;
-- recuperación tras compactación;
-- captura pasiva de aprendizajes;
-- su protocolo de memoria.
+- recovery after compaction;
+- passive capture of learnings;
+- its memory protocol.
 
-Varias funciones de `src/memory/text.ts` están portadas de su código, que se distribuye bajo licencia MIT.
+Several functions in `src/memory/text.ts` are ported from its code, which is distributed under the MIT license.

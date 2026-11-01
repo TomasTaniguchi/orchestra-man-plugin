@@ -1,48 +1,48 @@
-# Modelo de datos
+# Data model
 
-Esquema: `migrations/0001_init.sql`. Es SQLite portable: corre igual en D1 y en `node:sqlite`.
+Schema: `migrations/0001_init.sql`. It is portable SQLite: it runs the same on D1 and on `node:sqlite`.
 
-| Tabla | Clave | Contenido |
+| Table | Key | Contents |
 | --- | --- | --- |
-| `tokens` | `id` | Tokens de máquina: `name`, `token_hash` (SHA-256, único), `created_at`, `revoked_at` |
+| `tokens` | `id` | Machine tokens: `name`, `token_hash` (SHA-256, unique), `created_at`, `revoked_at` |
 | `agents` | `id` (`repo#machine`) | `repo`, `machine`, `kind` (`codespace`/`local`), `codespace_name`, `created_at`, `last_seen_at` |
-| `memories` | `id` entero; único `(repo, source_id)` | Memorias publicadas por los agentes, enmascaradas: `type`, `title`, `content`, `topic_key`, fechas |
-| `memories_fts` | `rowid` = `memories.id` | Índice FTS5 (external content) sobre `title` y `content`, mantenido por triggers |
+| `memories` | integer `id`; unique `(repo, source_id)` | Memories published by the agents, masked: `type`, `title`, `content`, `topic_key`, dates |
+| `memories_fts` | `rowid` = `memories.id` | FTS5 index (external content) over `title` and `content`, maintained by triggers |
 | `checkpoints` | `id` | `agent_id`, `repo`, `branch`, `commit_sha`, `summary`, `created_at` |
-| `tasks` | `id` | `title`, `repos` (JSON), `orchestrator`, `status`, `state` (JSON del grafo), `version`, `lease_owner`, `lease_expires_at`, fechas |
+| `tasks` | `id` | `title`, `repos` (JSON), `orchestrator`, `status`, `state` (graph JSON), `version`, `lease_owner`, `lease_expires_at`, dates |
 | `messages` | `id` | `task_id`, `from_agent`, `from_repo`, `to_repo`, `kind`, `body`, `created_at`, `acked_at`, `acked_by` |
 
-Índices: `agents(repo, last_seen_at)`, `checkpoints(repo, created_at)`, `messages(to_repo, acked_at, created_at)`.
+Indexes: `agents(repo, last_seen_at)`, `checkpoints(repo, created_at)`, `messages(to_repo, acked_at, created_at)`.
 
-## Memoria local (solo en tu máquina)
+## Local memory (only on your machine)
 
-Esquema: `src/memory/schema.ts`. Vive en el mismo archivo `localDbPath`, nunca en D1.
+Schema: `src/memory/schema.ts`. It lives in the same `localDbPath` file, never in D1.
 
-| Tabla | Contenido |
+| Table | Contents |
 | --- | --- |
-| `mem_sessions` | Sesiones de Claude Code: `id` (session_id), `project`, `directory`, `started_at`, `ended_at`, `summary` |
-| `mem_observations` | Memorias: `sync_id` (id estable para el backend), `session_id`, `project`, `scope`, `type`, `title`, `content`, `topic_key`, `normalized_hash`, `revision_count`, `duplicate_count`, `pinned`, fechas, `deleted_at`, `change_seq` |
-| `mem_observation_versions` | Versiones anteriores de cada memoria (por upsert de tema o `orchestra_update`) |
-| `mem_observations_fts` | Índice FTS5 sobre título y contenido, mantenido por triggers |
-| `mem_sync_cursors` | Último `change_seq` confirmado por cada backend (`syncTarget`) |
+| `mem_sessions` | Claude Code sessions: `id` (session_id), `project`, `directory`, `started_at`, `ended_at`, `summary` |
+| `mem_observations` | Memories: `sync_id` (stable id for the backend), `session_id`, `project`, `scope`, `type`, `title`, `content`, `topic_key`, `normalized_hash`, `revision_count`, `duplicate_count`, `pinned`, dates, `deleted_at`, `change_seq` |
+| `mem_observation_versions` | Previous versions of each memory (from a topic upsert or `orchestra_update`) |
+| `mem_observations_fts` | FTS5 index over title and content, maintained by triggers |
+| `mem_sync_cursors` | Last `change_seq` confirmed by each backend (`syncTarget`) |
 
-Cada escritura que hay que replicar toma `change_seq = max + 1` dentro de su transacción. Por eso el orden de sincronización no depende del reloj.
+Each write that must be replicated takes `change_seq = max + 1` inside its transaction. So the sync order does not depend on the clock.
 
-## Concurrencia
+## Concurrency
 
-D1 procesa una consulta a la vez por base, así que cada `UPDATE` condicional es atómico. Todas las reglas de concurrencia se expresan en una sola sentencia:
+D1 processes one query at a time per database, so each conditional `UPDATE` is atomic. Every concurrency rule is expressed in a single statement:
 
-| Operación | Garantía | Sentencia |
+| Operation | Guarantee | Statement |
 | --- | --- | --- |
-| Tomar lease | Solo si está libre, es tuyo o venció, y la tarea está abierta | `tryAcquireLease` en `repositories/tasks.ts` |
-| Guardar tarea | Solo el dueño del lease vigente y con la versión esperada; incrementa la versión | `tryUpdateTask` |
-| Cerrar tarea | Al pasar a `done`/`cancelled` se libera el lease | `tryUpdateTask` |
-| Upsert de memoria | No reemplaza una copia más nueva | `upsertMemoryStatement` |
-| Baja de memoria | No borra una copia más nueva | `deleteMemoryStatement` |
-| Ack de mensaje | Una sola vez y solo el repo destinatario | `tryAck` |
+| Acquire lease | Only if it is free, yours, or expired, and the task is open | `tryAcquireLease` in `repositories/tasks.ts` |
+| Save task | Only the current lease owner, with the expected version; increments the version | `tryUpdateTask` |
+| Close task | Moving to `done`/`cancelled` releases the lease | `tryUpdateTask` |
+| Memory upsert | Does not replace a newer copy | `upsertMemoryStatement` |
+| Memory withdrawal | Does not delete a newer copy | `deleteMemoryStatement` |
+| Message ack | Only once, and only by the recipient repo | `tryAck` |
 
-Si la condición no se cumple, la sentencia afecta 0 filas y el servicio lo convierte en `conflict` o `not_found` con un mensaje que explica la causa.
+If the condition is not met, the statement affects 0 rows and the service turns that into `conflict` or `not_found` with a message that explains the cause.
 
-## Fechas
+## Dates
 
-Todas las fechas que genera el backend son ISO 8601 en UTC (`toISOString()`), así que comparar strings equivale a comparar fechas. Las de las memorias vienen de la memoria local de cada máquina.
+All dates the backend generates are ISO 8601 in UTC (`toISOString()`), so comparing strings is the same as comparing dates. Memory dates come from each machine's local memory.

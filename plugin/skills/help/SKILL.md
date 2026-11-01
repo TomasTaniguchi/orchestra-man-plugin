@@ -1,86 +1,88 @@
 ---
 name: help
-description: Ayuda de orchestra-man. Diagnostica cómo está el plugin en esta máquina (configuración, backend, memoria, otros repos, bandeja) y muestra una guía corta con ejemplos de qué pedir.
+description: orchestra-man help. Diagnoses the state of the plugin on this machine (configuration, backend, memory, other repos, inbox) and shows a short guide with examples of what to ask.
 disable-model-invocation: true
-argument-hint: "[memoria | repos | tareas | mensajes | configuracion]"
+argument-hint: "[memory | repos | tasks | messages | config]"
 ---
 
-# Ayuda de orchestra-man
+# orchestra-man help
 
-Tema pedido: `$ARGUMENTS` (vacío = todo).
+Requested topic: `$ARGUMENTS` (empty = everything). Topics: `memory`, `repos`, `tasks`, `messages`, `config`. Also accept the old Spanish names as synonyms: `memoria` = `memory`, `tareas` = `tasks`, `mensajes` = `messages`, `configuracion` = `config`.
 
-## 1. Diagnóstico
+Present the guide in the user's language.
 
-Llamá a la herramienta `orchestra_status`. Si no está disponible (por ejemplo, el servidor MCP no arrancó), ejecutá:
+## 1. Diagnosis
+
+Call the `orchestra_status` tool. If it is not available (for example, the MCP server did not start), run:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" doctor
 ```
 
-Mostrale al usuario el reporte **tal cual**, dentro de un bloque de código. Si la sección "Estado" tiene problemas (✗ o !), explicá primero qué hacer con cada uno, en una línea, y ofrecé hacerlo vos cuando sea posible. Por ejemplo, para "sin configurar" ofrecé `/orchestra-man:configure`. Nunca muestres ni pidas tokens en el chat.
+Show the user the report **verbatim**, inside a code block. The report is printed in Spanish; do not translate it. If the "Estado" (status) section has problems (✗ or !), first explain what to do about each one, in one line, and offer to do it yourself when possible. For example, for "sin configurar" (not configured) offer `/orchestra-man:configure`. Never show or ask for tokens in the chat.
 
-## 2. Guía rápida
+## 2. Quick guide
 
-Después del diagnóstico, mostrá la guía de abajo. Si se pidió un tema, solo esa sección y "Comandos". No inventes funciones que no estén acá.
+After the diagnosis, show the guide below. If a topic was requested, show only that section and "Commands". Do not invent features that are not listed here.
 
-### Memoria de este repo
+### This repo's memory
 
-Claude guarda solo lo que vale la pena recordar: decisiones, causas raíz, contratos y pendientes. Sobrevive entre sesiones y a la compactación del contexto.
+Claude saves only what is worth remembering: decisions, root causes, contracts, and pending work. It survives across sessions and context compaction.
 
-| Pedile | Qué hace |
+| Ask | What it does |
 | --- | --- |
-| "Guardá que el endpoint de facturas devuelve invoiceId y status" | `orchestra_save`, con un tema estable (`topicKey`) para poder actualizarlo después |
-| "Actualizá la decisión sobre los reintentos: ahora son 5" | Mismo tema: actualiza la memoria y la versión anterior queda en el historial |
-| "Guardá como personal que uso el puerto 5433 para postgres" | `scope=personal`: nunca sale de esta máquina |
-| "¿Qué decidimos sobre los webhooks?" | `orchestra_context`, `orchestra_search` y `orchestra_get` |
-| "Fijá la memoria del contrato de facturas" | `orchestra_pin`: aparece siempre al abrir la sesión |
-| "Borrá la memoria #12" | `orchestra_delete` (soft); también se retira de los demás repos |
+| "Save that the invoices endpoint returns invoiceId and status" | `orchestra_save`, with a stable topic (`topicKey`) so it can be updated later |
+| "Update the retries decision: it's 5 now" | Same topic: updates the memory and the previous version stays in the history |
+| "Save as personal that I use port 5433 for postgres" | `scope=personal`: never leaves this machine |
+| "What did we decide about webhooks?" | `orchestra_context`, `orchestra_search` and `orchestra_get` |
+| "Pin the invoices contract memory" | `orchestra_pin`: always appears when the session opens |
+| "Delete memory #12" | `orchestra_delete` (soft); it is also withdrawn from the other repos |
 
-Para que algo no se guarde nunca, ni localmente, envolvelo en `<private>…</private>`.
+To make sure something is never saved, not even locally, wrap it in `<private>…</private>`.
 
-### Otros repositorios
+### Other repositories
 
-| Pedile | Qué hace |
+| Ask | What it does |
 | --- | --- |
-| "¿Cómo crea facturas el servicio de billing?" | `orchestra_recall` sobre la memoria compartida. Funciona con su codespace apagado |
-| "¿En qué rama quedó web?" | `orchestra_checkpoints` |
-| "Prendé el codespace de billing" | `orchestra_wake`. Solo con backend D1 y `GITHUB_TOKEN` en el Worker; tiene costo |
+| "How does the billing service create invoices?" | `orchestra_recall` over the shared memory. Works with its codespace stopped |
+| "What branch is web on?" | `orchestra_checkpoints` |
+| "Start the billing codespace" | `orchestra_wake`. Only with the D1 backend and `GITHUB_TOKEN` in the Worker; it has a cost |
 
-Lo que guarda otro repo llega en su próxima sincronización (cada 5 minutos). `orchestra_sync` publica lo tuyo al instante.
+What another repo saves arrives on its next sync (every 5 minutes). `orchestra_sync` publishes yours right away.
 
-### Tareas entre repos
+### Cross-repo tasks
 
-> "Las órdenes tienen que guardar el invoiceId de billing y web tiene que mostrar el recibo. Coordinalo."
+> "Orders need to store the invoiceId from billing and web needs to show the receipt. Coordinate it."
 
-1. Investiga en todos los repos y les pide ayuda a los otros agentes.
-2. Te muestra un plan por repo y **espera tu decisión**: aprobar, revisar o quedarse solo con el plan.
-3. Si aprobás, cada repo edita en una rama nueva, verifica y abre un PR. Nunca hace merge.
+1. It investigates in every repo and asks the other agents for help.
+2. It shows you a plan per repo and **waits for your decision**: approve, revise, or keep only the plan.
+3. If you approve, each repo edits on a new branch, verifies, and opens a PR. It never merges.
 
-Otros pedidos: "¿en qué quedó la tarea task_…?", "cancelá la tarea", "seguí la tarea task_…" (si el orquestador original se fue).
+Other requests: "what's the status of task task_…?", "cancel the task", "continue task task_…" (if the original orchestrator is gone).
 
-### Mensajes
+### Messages
 
-| Pedile | Qué hace |
+| Ask | What it does |
 | --- | --- |
-| "Preguntale a billing qué códigos de error devuelve /invoices" | `orchestra_send` |
-| "¿Tengo mensajes?" | `orchestra_inbox` |
+| "Ask billing which error codes /invoices returns" | `orchestra_send` |
+| "Do I have messages?" | `orchestra_inbox` |
 
-Cuando llega un pedido de otro repo, aparece una línea `[orchestra-man] Mensaje …` y Claude lo atiende. Antes de editar código te pregunta, aunque el otro repo ya lo haya aprobado.
+When a request arrives from another repo, a `[orchestra-man] Mensaje …` line appears and Claude handles it. It asks you before editing code, even if the other repo already approved it.
 
-### Configuración
+### Configuration
 
-| Para | Usá |
+| To | Use |
 | --- | --- |
-| Desplegar tu Worker (una vez) | `npm run worker:setup` en el repo del plugin |
-| Configurar esta máquina | `/orchestra-man:configure` |
-| Ver el estado | `/orchestra-man:help` |
-| Publicar la memoria ya | "sincronizá" (`orchestra_sync`) |
+| Deploy your Worker (once) | `npm run worker:setup` in the plugin repo |
+| Configure this machine | `/orchestra-man:configure` |
+| See the status | `/orchestra-man:help` |
+| Publish memory now | "sync" (`orchestra_sync`) |
 
-Todas tus máquinas deben usar el mismo `maskSalt`. Lo explica `/orchestra-man:configure`.
+All your machines must use the same `maskSalt`. `/orchestra-man:configure` explains it.
 
-### Comandos
+### Commands
 
-- `/orchestra-man:help [tema]`: este diagnóstico y la guía. Temas: `memoria`, `repos`, `tareas`, `mensajes`, `configuracion`.
-- `/orchestra-man:configure [d1|local]`: configurar el backend, la URL, el token y el enmascarado.
+- `/orchestra-man:help [topic]`: this diagnosis and the guide. Topics: `memory`, `repos`, `tasks`, `messages`, `config`.
+- `/orchestra-man:configure [d1|local]`: configure the backend, the URL, the token, and masking.
 
-Documentación completa: https://github.com/TomasTaniguchi/orchestra-man-plugin/tree/main/docs (problemas frecuentes en `docs/troubleshooting.md`).
+Full documentation: https://github.com/TomasTaniguchi/orchestra-man-plugin/tree/main/docs (common problems in `docs/troubleshooting.md`).

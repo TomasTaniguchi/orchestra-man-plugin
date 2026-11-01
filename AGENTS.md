@@ -1,69 +1,69 @@
 # AGENTS.md
 
-Punto de entrada para agentes de IA que trabajan **sobre este repositorio**. Los agentes que **usan** el plugin leen `plugin/skills/`.
+Entry point for AI agents working **on this repository**. Agents that **use** the plugin read `plugin/skills/`.
 
-## Qué es
+## What it is
 
-`orchestra-man` es un plugin de Claude Code. Varias sesiones de Claude Code, una por repositorio (codespace o clon local), comparten memoria y coordinan tareas a través de un Worker de Cloudflare personal con D1, o de un archivo SQLite local. LangGraph ordena el flujo de cada tarea; Claude Code hace todo el razonamiento. Índice de documentación: `docs/README.md`.
+`orchestra-man` is a Claude Code plugin. Several Claude Code sessions, one per repository (codespace or local clone), share memory and coordinate tasks through a personal Cloudflare Worker with D1, or a local SQLite file. LangGraph orders the flow of each task; Claude Code does all the reasoning. Documentation index: `docs/README.md`.
 
-## Comandos
+## Commands
 
-| Objetivo | Comando |
+| Goal | Command |
 | --- | --- |
-| Instalar | `npm ci` |
+| Install | `npm ci` |
 | Typecheck | `npm run typecheck` |
-| Todos los tests | `npm test` |
-| Solo unitarios | `npm run test:unit` |
-| Solo end-to-end | `npm run test:e2e` |
-| Actualizar snapshots (¡revisá el diff!) | `npm run test:update` |
-| Generar el bundle (`plugin/dist`) | `npm run build` |
-| Todo lo que corre CI | `npm run check` |
-| Desplegar tu Worker (interactivo) | `npm run worker:setup` (`scripts/setup-worker.sh`) |
+| All tests | `npm test` |
+| Unit only | `npm run test:unit` |
+| End-to-end only | `npm run test:e2e` |
+| Update snapshots (review the diff!) | `npm run test:update` |
+| Build the bundle (`plugin/dist`) | `npm run build` |
+| Everything CI runs | `npm run check` |
+| Deploy your Worker (interactive) | `npm run worker:setup` (`scripts/setup-worker.sh`) |
 
-`plugin/dist/` está versionado: los usuarios instalan el plugin sin build. **Si cambiás `src/`, corré `npm run build` y commiteá `plugin/dist/`.** CI falla si el bundle quedó desactualizado.
+`plugin/dist/` is versioned: users install the plugin without a build. **If you change `src/`, run `npm run build` and commit `plugin/dist/`.** CI fails if the bundle is out of date.
 
-## Mapa
+## Map
 
-| Ruta | Responsabilidad |
+| Path | Responsibility |
 | --- | --- |
-| `src/core/contract.ts` | El contrato de la API (zod). Fuente única de verdad de cada payload |
-| `src/core/routes.ts` | Rutas HTTP. Las usan el router del Worker y el cliente `httpRemote` |
-| `src/core/db.ts` | `SqlDatabase`: interfaz mínima con forma de D1 de la que depende todo el código de datos |
-| `src/core/repositories/` | Un archivo por tabla. Funciones SQL atómicas, sin HTTP ni reglas de negocio |
-| `src/core/service.ts` | `OrchestraService`: reglas de negocio (validación, leases, versiones, lotes) |
-| `src/core/remote.ts` | `Remote`: el puerto que usa el plugin. Lo implementan el servicio local y `httpRemote` |
-| `src/masking/` | Reglas de enmascarado y el decorador `maskedRemote` |
-| `src/worker/` | Worker: router, auth, wake de codespaces, mantenimiento por cron |
-| `src/orchestration/` | Grafo de LangGraph. Nodos puros más herramientas inyectadas |
-| `src/memory/` | Memoria local de cada repo (reemplazo de Engram): store, texto, contexto y esquema `mem_*` |
-| `src/plugin/` | Runtime del plugin: config, identidad, sync incremental, casos de uso, MCP y CLI |
-| `migrations/` | Esquema. Lo usan wrangler **y** el modo local |
-| `scripts/setup-worker.sh` | Despliegue interactivo del Worker (bash 3.2+, Git Bash, WSL). La lógica portable vive en `scripts/setup-worker-lib.mjs` |
-| `worker/wrangler.jsonc` | Plantilla versionada. Cada persona usa su copia `worker/wrangler.local.jsonc` (ignorada) |
-| `plugin/` | El plugin instalable (manifest, hooks, monitor, skills y `dist/`) |
-| `plugin/skills/` | `memory` (protocolo de memoria), `orchestra` (multi-agente), `configure` y `help` (solo los invoca el usuario). La guía con ejemplos vive en `help/SKILL.md` |
-| `src/plugin/doctor.ts` | El diagnóstico de `/orchestra-man:help`, `cli.mjs doctor` y `orchestra_status`: una sola implementación |
-| `docs/api/openapi.yaml` | Contrato legible. `test/e2e/contract.test.ts` lo mantiene sincronizado con las rutas |
+| `src/core/contract.ts` | The API contract (zod). Single source of truth for every payload |
+| `src/core/routes.ts` | HTTP routes. Used by the Worker router and the `httpRemote` client |
+| `src/core/db.ts` | `SqlDatabase`: minimal D1-shaped interface that all data code depends on |
+| `src/core/repositories/` | One file per table. Atomic SQL functions, no HTTP or business rules |
+| `src/core/service.ts` | `OrchestraService`: business rules (validation, leases, versions, batches) |
+| `src/core/remote.ts` | `Remote`: the port the plugin uses. Implemented by the local service and `httpRemote` |
+| `src/masking/` | Masking rules and the `maskedRemote` decorator |
+| `src/worker/` | Worker: router, auth, codespace wake, cron maintenance |
+| `src/orchestration/` | LangGraph graph. Pure nodes plus injected tools |
+| `src/memory/` | Each repo's local memory (Engram replacement): store, text, context and `mem_*` schema |
+| `src/plugin/` | Plugin runtime: config, identity, incremental sync, use cases, MCP and CLI |
+| `migrations/` | Schema. Used by wrangler **and** local mode |
+| `scripts/setup-worker.sh` | Interactive Worker deployment (bash 3.2+, Git Bash, WSL). The portable logic lives in `scripts/setup-worker-lib.mjs` |
+| `worker/wrangler.jsonc` | Versioned template. Each person uses their own copy `worker/wrangler.local.jsonc` (ignored) |
+| `plugin/` | The installable plugin (manifest, hooks, monitor, skills and `dist/`) |
+| `plugin/skills/` | `memory` (memory protocol), `orchestra` (multi-agent), `configure` and `help` (invoked only by the user). The guide with examples lives in `help/SKILL.md` |
+| `src/plugin/doctor.ts` | The diagnosis for `/orchestra-man:help`, `cli.mjs doctor` and `orchestra_status`: a single implementation |
+| `docs/api/openapi.yaml` | Human-readable contract. `test/e2e/contract.test.ts` keeps it in sync with the routes |
 
-## Reglas
+## Rules
 
-- **Contrato primero.** Cambiá `src/core/contract.ts`, `src/core/routes.ts` y `docs/api/openapi.yaml` antes del handler. El test de contrato falla si divergen.
-- **Una sola implementación de cada regla.** La lógica de datos vive en `src/core`; el Worker y el modo local solo la adaptan. Nunca copies SQL en `src/worker` ni en `src/plugin`.
-- **Funciones atómicas, inyectadas y testeables.** Las dependencias (`db`, `clock`, `ids`, `fetch`, `exec`) entran por parámetro. Nada de singletons ni `Date.now()` fuera de `src/core/clock.ts`.
-- **La memoria local nunca sale sin pasar por la sync.** `src/memory` no conoce la red; solo `src/plugin/sync.ts` publica, y nunca memorias `personal`.
-- **Enmascarar en el borde.** Todo lo que sale de la máquina pasa por `maskedRemote`. El código del plugin nunca usa un `Remote` sin enmascarar; `createRuntime` es el único lugar que arma uno.
-- **Respetar los límites de D1** (`docs/reference/d1-limits.md`): como máximo 100 parámetros por sentencia, un `batch()` por petición y 50 consultas por invocación en el plan Free.
-- **Los snapshots son aserciones.** Si un snapshot cambia, explicá por qué en el commit.
-- **Nunca editar otro repositorio sin autorización.** `orchestra_task_approve` es la puerta humana; tiene que seguir siendo una herramienta aparte para que Claude Code pida permiso.
-- **Hooks y monitor nunca rompen la sesión.** Fallan con una línea explicativa y código 0.
+- **Contract first.** Change `src/core/contract.ts`, `src/core/routes.ts` and `docs/api/openapi.yaml` before the handler. The contract test fails if they diverge.
+- **A single implementation of each rule.** Data logic lives in `src/core`; the Worker and local mode only adapt it. Never copy SQL into `src/worker` or `src/plugin`.
+- **Atomic, injected, testable functions.** Dependencies (`db`, `clock`, `ids`, `fetch`, `exec`) come in as parameters. No singletons and no `Date.now()` outside `src/core/clock.ts`.
+- **Local memory never leaves without going through sync.** `src/memory` knows nothing about the network; only `src/plugin/sync.ts` publishes, and never `personal` memories.
+- **Mask at the edge.** Everything that leaves the machine goes through `maskedRemote`. Plugin code never uses an unmasked `Remote`; `createRuntime` is the only place that builds one.
+- **Respect D1 limits** (`docs/reference/d1-limits.md`): at most 100 parameters per statement, one `batch()` per request and 50 queries per invocation on the Free plan.
+- **Snapshots are assertions.** If a snapshot changes, explain why in the commit.
+- **Never edit another repository without approval.** `orchestra_task_approve` is the human gate; it must stay a separate tool so Claude Code asks for permission.
+- **Hooks and monitor never break the session.** They fail with an explanatory line and exit code 0.
 
-## Recetas
+## Recipes
 
-- Agregar un endpoint, una herramienta MCP o una regla de enmascarado: `docs/guides/development.md`.
+- Add an endpoint, an MCP tool or a masking rule: `docs/guides/development.md`.
 
-## Para leer después
+## Further reading
 
-- `docs/architecture/overview.md`: componentes y flujo de datos
-- `docs/architecture/orchestration.md`: el grafo de tareas
-- `docs/reference/`: API, configuración, herramientas MCP, CLI, modelo de datos
-- `docs/adr/`: por qué las cosas son como son
+- `docs/architecture/overview.md`: components and data flow
+- `docs/architecture/orchestration.md`: the task graph
+- `docs/reference/`: API, configuration, MCP tools, CLI, data model
+- `docs/adr/`: why things are the way they are

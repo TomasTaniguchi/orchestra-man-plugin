@@ -1,44 +1,44 @@
 # CLI
 
-El plugin trae una CLI empaquetada en `plugin/dist/cli.mjs` (código en `src/plugin/cli.ts`). La usan los hooks y el monitor; también la podés correr a mano.
+The plugin ships a bundled CLI in `plugin/dist/cli.mjs` (source in `src/plugin/cli.ts`). The hooks and the monitor use it. You can also run it by hand.
 
 ```bash
-node <ruta-del-plugin>/dist/cli.mjs <comando>
+node <plugin-path>/dist/cli.mjs <command>
 ```
 
-En una skill, la ruta es `${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs`.
+In a skill, the path is `${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs`.
 
-| Comando | Lo usa | Qué hace |
+| Command | Used by | What it does |
 | --- | --- | --- |
-| `session-start` | hook `SessionStart` (`startup`, `resume`, `clear`) | Abre la sesión, sincroniza, guarda un checkpoint e imprime la memoria del repo y el contexto entre repos (stdout se agrega al contexto de Claude) |
-| `post-compact` | hook `SessionStart` (`compact`) | Imprime los pasos de recuperación (guardar el resumen compactado) y la memoria completa |
-| `session-end` | hook `SessionEnd` | Cierra la sesión, última sincronización y checkpoint, sin salida |
-| `subagent-stop` | hook `SubagentStop` | Guarda los ítems "Key Learnings" de la última respuesta del subagente (captura pasiva) |
-| `watch` | monitor `orchestra-watch` | Bucle: cada `inboxPollSec` imprime una línea por mensaje nuevo; cada `checkpointIntervalSec` sincroniza |
-| `doctor` | `/orchestra-man:help`, a mano | Diagnóstico de solo lectura: configuración, backend y su versión, agente, memoria y cambios sin publicar, otros repos y bandeja, con qué hacer ante cada problema. Sale con código 1 si hay errores. Funciona aunque falte la configuración |
-| `sync` | a mano | Sincroniza y checkpointea ahora; imprime el resultado en JSON |
-| `status` | a mano | Agente, destino de sincronización y configuración efectiva (secretos acortados) |
-| `configure` | skill `configure` | Edita el archivo de configuración |
-| `help` | — | Uso |
+| `session-start` | `SessionStart` hook (`startup`, `resume`, `clear`) | Opens the session, syncs, saves a checkpoint, and prints the repo memory and the cross-repo context (stdout is added to Claude's context) |
+| `post-compact` | `SessionStart` hook (`compact`) | Prints the recovery steps (save the compacted summary) and the full memory |
+| `session-end` | `SessionEnd` hook | Closes the session, runs a final sync and checkpoint, no output |
+| `subagent-stop` | `SubagentStop` hook | Saves the "Key Learnings" items from the subagent's last response (passive capture) |
+| `watch` | `orchestra-watch` monitor | Loop: every `inboxPollSec` it prints one line per new message; every `checkpointIntervalSec` it syncs |
+| `doctor` | `/orchestra-man:help`, by hand | Read-only diagnosis: configuration, backend and its version, agent, memory and unsynced changes, other repos and inbox, with what to do about each problem. Exits with code 1 on errors. Works even when the configuration is missing |
+| `sync` | by hand | Syncs and checkpoints now; prints the result as JSON |
+| `status` | by hand | Agent, sync target, and effective configuration (secrets shortened) |
+| `configure` | `configure` skill | Edits the configuration file |
+| `help` | — | Usage |
 
 ## `configure`
 
 ```bash
-cli.mjs configure                                  # crea el archivo con un salt nuevo si no existe
+cli.mjs configure                                  # creates the file with a new salt if it does not exist
 cli.mjs configure --set mode=d1 --set workerUrl=https://orchestra-man.x.workers.dev
 cli.mjs configure --set 'maskPatterns=["CUST-\\d{6}"]'
-cli.mjs configure --token-stdin                    # lee el token de stdin
-cli.mjs configure --show                           # muestra el archivo (secretos acortados)
+cli.mjs configure --token-stdin                    # reads the token from stdin
+cli.mjs configure --show                           # shows the file (secrets shortened)
 ```
 
-- `--set token=...` está prohibido a propósito: el token quedaría en el historial del shell o de la conversación. Usá `--token-stdin`.
-- El archivo se escribe con permisos `0600` y su directorio con `0700`.
-- Claves válidas: ver [configuration.md](configuration.md).
+- `--set token=...` is forbidden on purpose: the token would end up in the shell or conversation history. Use `--token-stdin`.
+- The file is written with `0600` permissions and its directory with `0700`.
+- Valid keys: see [configuration.md](configuration.md).
 
-## Comportamiento de hooks y monitor
+## Hook and monitor behavior
 
-Los hooks reciben por stdin el JSON del evento de Claude Code y usan `session_id`, `cwd` y, en `SubagentStop`, `last_assistant_message`.
+Hooks receive the Claude Code event JSON on stdin and use `session_id`, `cwd` and, in `SubagentStop`, `last_assistant_message`.
 
-`session-start`, `post-compact`, `session-end`, `subagent-stop` y `watch` **nunca fallan la sesión**. Ante un error imprimen una línea `orchestra-man: <motivo>` y terminan con código 0. El monitor reporta cada error distinto una sola vez, para que un backend caído se vea sin llenar la conversación de avisos.
+`session-start`, `post-compact`, `session-end`, `subagent-stop` and `watch` **never fail the session**. On error they print one line `orchestra-man: <motivo>` and exit with code 0. The monitor reports each distinct error only once, so a down backend is visible without flooding the conversation with warnings.
 
-Al arrancar, el monitor marca como vistos los mensajes que ya estaban en la bandeja, porque `session-start` ya los mostró.
+On startup, the monitor marks the messages already in the inbox as seen, because `session-start` already showed them.

@@ -1,53 +1,53 @@
-# Configuración
+# Configuration
 
-Código: `src/plugin/config.ts`.
+Code: `src/plugin/config.ts`.
 
-## Precedencia
+## Precedence
 
-1. Variables de entorno.
-2. Archivo `~/.config/orchestra-man/config.json` (o `$XDG_CONFIG_HOME/orchestra-man/config.json`, o la ruta en `ORCHESTRA_CONFIG`).
-3. Valores por defecto.
+1. Environment variables.
+2. The file `~/.config/orchestra-man/config.json` (or `$XDG_CONFIG_HOME/orchestra-man/config.json`, or the path in `ORCHESTRA_CONFIG`).
+3. Defaults.
 
-Si no se define `mode`, es `d1` cuando hay `workerUrl` y `token`, y `local` en otro caso.
+If `mode` is not set, it is `d1` when `workerUrl` and `token` are present, and `local` otherwise.
 
-### Por qué un archivo y no `userConfig` del plugin
+### Why a file and not the plugin's `userConfig`
 
-Claude Code permite declarar `userConfig` en `plugin.json` y guarda los valores sensibles en el llavero del sistema. Pero esos valores **no llegan a los monitores**, y el monitor `watch` necesita el token para leer la bandeja. Por eso todos los procesos del plugin (servidor MCP, hooks y monitor) leen la misma fuente: variables de entorno o un archivo con permisos 0600. Ver [ADR 0005](../adr/0005-configuracion-archivo-y-entorno.md).
+Claude Code lets a plugin declare `userConfig` in `plugin.json` and stores sensitive values in the system keychain. But those values **do not reach monitors**, and the `watch` monitor needs the token to read the inbox. So every plugin process (MCP server, hooks and monitor) reads the same source: environment variables or a file with 0600 permissions. See [ADR 0005](../adr/0005-config-file-and-environment.md).
 
-## Claves
+## Keys
 
-| Clave | Variable de entorno | Por defecto | Descripción |
+| Key | Environment variable | Default | Description |
 | --- | --- | --- | --- |
-| `mode` | `ORCHESTRA_MODE` | `d1` si hay URL y token, si no `local` | Backend: tu Worker (`d1`) o SQLite local (`local`) |
-| `workerUrl` | `ORCHESTRA_URL` | — | URL del Worker. Obligatoria en modo `d1` |
-| `token` | `ORCHESTRA_TOKEN` | — | Token de esta máquina. Obligatorio en modo `d1`. Cargalo con `configure --token-stdin` |
-| `localDbPath` | `ORCHESTRA_LOCAL_DB` | `~/.local/share/orchestra-man/orchestra.db` | Archivo SQLite local: la memoria del repo (siempre) y, en modo `local`, también el backend compartido |
-| `maskSalt` | `ORCHESTRA_MASK_SALT` | se genera al crear el archivo | Secreto del enmascarado (mínimo 16 caracteres). **Igual en todas tus máquinas** |
-| `maskPatterns` | `ORCHESTRA_MASK_PATTERNS` (array JSON) | `[]` | Regex extra a enmascarar como `<custom:…>` |
-| `checkpointIntervalSec` | `ORCHESTRA_CHECKPOINT_INTERVAL` | `300` (mínimo 60) | Cada cuánto el monitor sincroniza la memoria y checkpointea |
-| `inboxPollSec` | `ORCHESTRA_INBOX_POLL` | `30` (mínimo 10) | Cada cuánto el monitor consulta la bandeja |
-| `agentStaleMinutes` | `ORCHESTRA_AGENT_STALE_MINUTES` | `15` | Sin heartbeat por más de esto, un agente se muestra offline |
+| `mode` | `ORCHESTRA_MODE` | `d1` if URL and token are set, otherwise `local` | Backend: your Worker (`d1`) or local SQLite (`local`) |
+| `workerUrl` | `ORCHESTRA_URL` | — | Worker URL. Required in `d1` mode |
+| `token` | `ORCHESTRA_TOKEN` | — | This machine's token. Required in `d1` mode. Set it with `configure --token-stdin` |
+| `localDbPath` | `ORCHESTRA_LOCAL_DB` | `~/.local/share/orchestra-man/orchestra.db` | Local SQLite file: the repo memory (always) and, in `local` mode, also the shared backend |
+| `maskSalt` | `ORCHESTRA_MASK_SALT` | generated when the file is created | Masking secret (at least 16 characters). **Same on all your machines** |
+| `maskPatterns` | `ORCHESTRA_MASK_PATTERNS` (JSON array) | `[]` | Extra regexes to mask as `<custom:…>` |
+| `checkpointIntervalSec` | `ORCHESTRA_CHECKPOINT_INTERVAL` | `300` (minimum 60) | How often the monitor syncs memory and checkpoints |
+| `inboxPollSec` | `ORCHESTRA_INBOX_POLL` | `30` (minimum 10) | How often the monitor polls the inbox |
+| `agentStaleMinutes` | `ORCHESTRA_AGENT_STALE_MINUTES` | `15` | With no heartbeat for longer than this, an agent shows as offline |
 
-## Identidad del agente
+## Agent identity
 
-No se configura: se detecta.
+It is not configured: it is detected.
 
-- **repo**: `owner/name` de `git remote get-url origin`, o `local/<directorio>` si no hay remoto.
-- **machine**: `CODESPACE_NAME` en un codespace (cuando `CODESPACES=true`), si no el hostname.
-- **id**: `<repo>#<machine>`, por ejemplo `acme/api#laptop` o `acme/billing#cs-billing`.
+- **repo**: `owner/name` from `git remote get-url origin`, or `local/<directory>` if there is no remote.
+- **machine**: `CODESPACE_NAME` in a codespace (when `CODESPACES=true`), otherwise the hostname.
+- **id**: `<repo>#<machine>`, for example `acme/api#laptop` or `acme/billing#cs-billing`.
 
 ## Codespaces
 
-Usá secretos de GitHub Codespaces (`ORCHESTRA_URL`, `ORCHESTRA_TOKEN`, `ORCHESTRA_MASK_SALT`). No hace falta archivo.
+Use GitHub Codespaces secrets (`ORCHESTRA_URL`, `ORCHESTRA_TOKEN`, `ORCHESTRA_MASK_SALT`). No file is needed.
 
-## Variables del Worker
+## Worker variables
 
-En `vars` de tu `worker/wrangler.local.jsonc` (copia personal de la plantilla `worker/wrangler.jsonc`) y como secretos de wrangler:
+In `vars` of your `worker/wrangler.local.jsonc` (personal copy of the `worker/wrangler.jsonc` template) and as wrangler secrets:
 
-| Nombre | Tipo | Descripción |
+| Name | Type | Description |
 | --- | --- | --- |
-| `ADMIN_TOKEN` | secreto | Emite y revoca tokens de máquina |
-| `GITHUB_TOKEN` | secreto, opcional | PAT clásico con scope `codespace`. Habilita `orchestra_wake` |
-| `RETENTION_ACKED_MESSAGE_DAYS` | var | Días que se guardan los mensajes leídos (7) |
-| `RETENTION_UNREAD_MESSAGE_DAYS` | var | Días que se guardan los no leídos (30) |
-| `RETENTION_CHECKPOINT_DAYS` | var | Días de checkpoints. El último de cada repo nunca se borra (30) |
+| `ADMIN_TOKEN` | secret | Issues and revokes machine tokens |
+| `GITHUB_TOKEN` | secret, optional | Classic PAT with the `codespace` scope. Enables `orchestra_wake` |
+| `RETENTION_ACKED_MESSAGE_DAYS` | var | Days read messages are kept (7) |
+| `RETENTION_UNREAD_MESSAGE_DAYS` | var | Days unread messages are kept (30) |
+| `RETENTION_CHECKPOINT_DAYS` | var | Days checkpoints are kept. The latest one for each repo is never deleted (30) |
