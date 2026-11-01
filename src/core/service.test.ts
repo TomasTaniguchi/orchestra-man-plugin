@@ -99,7 +99,7 @@ describe("memories", () => {
   });
 
   it("builds quoted prefix FTS queries", () => {
-    expect(toFtsQuery('billing "invoice" OR x*')).toBe('"billing"* "invoice"* "OR"* "x"*');
+    expect(toFtsQuery('billing "invoice" OR x*')).toBe('"billing"* OR "invoice"* OR "OR"* OR "x"*');
     expect(toFtsQuery("  ")).toBeNull();
   });
 });

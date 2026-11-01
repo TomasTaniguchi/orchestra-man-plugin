@@ -31,12 +31,13 @@ export const upsertMemoryStatement = (db: SqlDatabase, m: MemoryRow, now: string
     .bind(m.repo, m.sourceId, m.agentId, m.type, m.title, m.content, m.topicKey, m.createdAt, m.updatedAt, now);
 
 /**
- * Turns free text into a safe FTS5 query: every word becomes a quoted prefix term,
- * so user input can never produce FTS syntax errors. Returns null when nothing is searchable.
+ * Turns free text into a safe FTS5 query: every word becomes a quoted prefix term, OR-ed so a
+ * natural-language goal still recalls partial matches (bm25 ranks the best ones first).
+ * Quoting means user input can never produce FTS syntax errors. Returns null when nothing is searchable.
  */
 export function toFtsQuery(text: string): string | null {
   const words = text.match(/[\p{L}\p{N}_]+/gu)?.slice(0, 10) ?? [];
-  return words.length ? words.map((w) => `"${w}"*`).join(" ") : null;
+  return words.length ? words.map((w) => `"${w}"*`).join(" OR ") : null;
 }
 
 const toHit = (row: Row): MemoryHit => ({
